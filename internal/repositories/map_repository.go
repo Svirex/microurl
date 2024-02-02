@@ -1,5 +1,7 @@
 package repositories
 
+import "fmt"
+
 type MapRepository struct {
 	data map[string]string
 }
@@ -11,8 +13,12 @@ func (m *MapRepository) Add(shortId, url string) error {
 	return nil
 }
 
-func (m *MapRepository) Get(shortId string) (string, error) {
-	return m.data[shortId], nil
+func (m *MapRepository) Get(shortId string) (*string, error) {
+	u, ok := m.data[shortId]
+	if !ok {
+		return nil, fmt.Errorf("Not found url for %s", shortId)
+	}
+	return &u, nil
 }
 
 func NewMapRepository() *MapRepository {

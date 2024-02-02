@@ -11,6 +11,6 @@ import (
 func main() {
 	generator := generators.NewSimpleGenerator(time.Now().UnixNano())
 	repository := repositories.NewMapRepository()
-	server := handlers.NewServer("localhost", 8085, repository, generator)
+	server := handlers.NewServer("localhost", 8080, repository, generator)
 	server.Start()
 }

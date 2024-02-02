@@ -26,7 +26,7 @@ func NewServer(host string, port int, repository repositories.Repository, genera
 
 func (s *Server) Start() {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", NewRootPost(s))
+	mux.HandleFunc("/", NewMainHandler(s))
 
 	err := http.ListenAndServe(fmt.Sprintf("%s:%d", s.host, s.port), mux)
 	if err != nil {
