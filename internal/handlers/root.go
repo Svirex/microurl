@@ -37,7 +37,7 @@ func Get(w http.ResponseWriter, r *http.Request, server *Server) {
 		return
 	}
 	w.WriteHeader(http.StatusTemporaryRedirect)
-	w.Write([]byte(*originURL))
+	w.Header().Set("Location", *originURL)
 }
 
 func NewMainHandler(server *Server) http.HandlerFunc {
