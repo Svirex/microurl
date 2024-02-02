@@ -13,13 +13,13 @@ func Post(w http.ResponseWriter, r *http.Request, server *Server) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	shortId := server.generator.RandString(8)
-	err = server.repository.Add(shortId, string(url))
+	shortID := server.generator.RandString(8)
+	err = server.repository.Add(shortID, string(url))
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	result := fmt.Sprintf("http://%s:%d/%s", server.host, server.port, shortId)
+	result := fmt.Sprintf("http://%s:%d/%s", server.host, server.port, shortID)
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(result))
 }
@@ -30,14 +30,14 @@ func Get(w http.ResponseWriter, r *http.Request, server *Server) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	shortId := splitted[1]
-	origin_url, err := server.repository.Get(shortId)
+	shortID := splitted[1]
+	originURL, err := server.repository.Get(shortID)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	w.WriteHeader(http.StatusTemporaryRedirect)
-	w.Write([]byte(*origin_url))
+	w.Write([]byte(*originURL))
 }
 
 func NewMainHandler(server *Server) http.HandlerFunc {

@@ -1,6 +1,6 @@
 package repositories
 
 type Repository interface {
-	Add(shortId, url string) error
-	Get(shortId string) (*string, error)
+	Add(shortID, url string) error
+	Get(shortID string) (*string, error)
 }
