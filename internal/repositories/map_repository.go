@@ -16,7 +16,7 @@ func (m *MapRepository) Add(shortID, url string) error {
 func (m *MapRepository) Get(shortID string) (*string, error) {
 	u, ok := m.data[shortID]
 	if !ok {
-		return nil, fmt.Errorf("Not found url for %s", shortID)
+		return nil, fmt.Errorf("not found url for %s", shortID)
 	}
 	return &u, nil
 }
