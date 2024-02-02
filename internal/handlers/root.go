@@ -36,8 +36,8 @@ func Get(w http.ResponseWriter, r *http.Request, server *Server) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	w.WriteHeader(http.StatusTemporaryRedirect)
 	w.Header().Set("Location", *originURL)
+	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
 func NewMainHandler(server *Server) http.HandlerFunc {
