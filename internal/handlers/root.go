@@ -11,7 +11,7 @@ import (
 
 func Post(w http.ResponseWriter, r *http.Request, appCtx *context.AppContext) {
 	url, err := io.ReadAll(r.Body)
-	if err != nil {
+	if err != nil || len(url) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -33,6 +33,10 @@ func Get(w http.ResponseWriter, r *http.Request, appCtx *context.AppContext) {
 		return
 	}
 	shortID := splitted[1]
+	if len(shortID) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	originURL, err := appCtx.Repository.Get(shortID)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)

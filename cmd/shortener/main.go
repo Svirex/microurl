@@ -7,7 +7,7 @@ import (
 	"github.com/Svirex/microurl/internal/pkg/config"
 	"github.com/Svirex/microurl/internal/pkg/context"
 	"github.com/Svirex/microurl/internal/server"
-	repositories "github.com/Svirex/microurl/internal/storage"
+	"github.com/Svirex/microurl/internal/storage"
 )
 
 func main() {
@@ -18,7 +18,7 @@ func main() {
 	appCtx := context.AppContext{
 		Config:     &config,
 		Generator:  generators.NewSimpleGenerator(time.Now().UnixNano()),
-		Repository: repositories.NewMapRepository(),
+		Repository: storage.NewMapRepository(),
 	}
 	server := server.NewServer(config.Host, config.Port)
 	server.Start(&appCtx)
