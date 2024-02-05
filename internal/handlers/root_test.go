@@ -198,5 +198,6 @@ func TestGet(t *testing.T) {
 
 		url = res.Header.Get("Location")
 		assert.Equal(t, sourceURL, url)
+		defer res.Body.Close()
 	})
 }
