@@ -5,33 +5,35 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
+	"github.com/Svirex/microurl/internal/pkg/context"
 )
 
-func Post(w http.ResponseWriter, r *http.Request, server *Server) {
+func Post(w http.ResponseWriter, r *http.Request, appCtx *context.AppContext) {
 	url, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	shortID := server.generator.RandString(8)
-	err = server.repository.Add(shortID, string(url))
+	shortID := appCtx.Generator.RandString(8)
+	err = appCtx.Repository.Add(shortID, string(url))
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	result := fmt.Sprintf("http://%s:%d/%s", server.host, server.port, shortID)
+	result := fmt.Sprintf("http://%s:%d/%s", appCtx.Config.Host, appCtx.Config.Port, shortID)
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(result))
 }
 
-func Get(w http.ResponseWriter, r *http.Request, server *Server) {
+func Get(w http.ResponseWriter, r *http.Request, appCtx *context.AppContext) {
 	splitted := strings.Split(r.RequestURI, "/")
 	if len(splitted) != 2 {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	shortID := splitted[1]
-	originURL, err := server.repository.Get(shortID)
+	originURL, err := appCtx.Repository.Get(shortID)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -40,12 +42,12 @@ func Get(w http.ResponseWriter, r *http.Request, server *Server) {
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
-func NewMainHandler(server *Server) http.HandlerFunc {
+func NewMainHandler(appCtx *context.AppContext) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodPost {
-			Post(w, r, server)
+			Post(w, r, appCtx)
 		} else if r.Method == http.MethodGet {
-			Get(w, r, server)
+			Get(w, r, appCtx)
 		} else {
 			w.WriteHeader(http.StatusBadRequest)
 			return

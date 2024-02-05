@@ -4,13 +4,22 @@ import (
 	"time"
 
 	"github.com/Svirex/microurl/internal/generators"
-	"github.com/Svirex/microurl/internal/handlers"
-	"github.com/Svirex/microurl/internal/repositories"
+	"github.com/Svirex/microurl/internal/pkg/config"
+	"github.com/Svirex/microurl/internal/pkg/context"
+	"github.com/Svirex/microurl/internal/server"
+	repositories "github.com/Svirex/microurl/internal/storage"
 )
 
 func main() {
-	generator := generators.NewSimpleGenerator(time.Now().UnixNano())
-	repository := repositories.NewMapRepository()
-	server := handlers.NewServer("localhost", 8080, repository, generator)
-	server.Start()
+	config := config.Config{
+		Host: "localhost",
+		Port: 8080,
+	}
+	appCtx := context.AppContext{
+		Config:     &config,
+		Generator:  generators.NewSimpleGenerator(time.Now().UnixNano()),
+		Repository: repositories.NewMapRepository(),
+	}
+	server := server.NewServer(config.Host, config.Port)
+	server.Start(&appCtx)
 }

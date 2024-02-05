@@ -1,12 +1,16 @@
 package repositories
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/Svirex/microurl/internal/pkg/repositories"
+)
 
 type MapRepository struct {
 	data map[string]string
 }
 
-var _ Repository = &MapRepository{}
+var _ repositories.Repository = &MapRepository{}
 
 func (m *MapRepository) Add(shortID, url string) error {
 	m.data[shortID] = url
@@ -21,7 +25,7 @@ func (m *MapRepository) Get(shortID string) (*string, error) {
 	return &u, nil
 }
 
-func NewMapRepository() *MapRepository {
+func NewMapRepository() repositories.Repository {
 	return &MapRepository{
 		data: make(map[string]string),
 	}
