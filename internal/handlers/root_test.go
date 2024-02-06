@@ -49,7 +49,7 @@ func TestPost(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPost, "/", nil)
 		w := httptest.NewRecorder()
 
-		Post(w, r, appCtx)
+		Post(appCtx)(w, r)
 
 		res := w.Result()
 
@@ -66,7 +66,7 @@ func TestPost(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPost, "/", body)
 		w := httptest.NewRecorder()
 
-		Post(w, r, appCtx)
+		Post(appCtx)(w, r)
 
 		res := w.Result()
 
@@ -89,7 +89,7 @@ func TestPost(t *testing.T) {
 		r := httptest.NewRequest(http.MethodPost, "/", body)
 		w := httptest.NewRecorder()
 
-		Post(w, r, appCtx)
+		Post(appCtx)(w, r)
 
 		res := w.Result()
 		assert.Equal(t, http.StatusBadRequest, res.StatusCode)
@@ -119,7 +119,7 @@ func TestGet(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, "/ETGFDT/DDFDF", nil)
 		w := httptest.NewRecorder()
 
-		Get(w, r, appCtx)
+		Get(appCtx)(w, r)
 
 		res := w.Result()
 		assert.Equal(t, http.StatusBadRequest, res.StatusCode)
@@ -141,7 +141,7 @@ func TestGet(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, "/", nil)
 		w := httptest.NewRecorder()
 
-		Get(w, r, appCtx)
+		Get(appCtx)(w, r)
 
 		res := w.Result()
 		assert.Equal(t, http.StatusBadRequest, res.StatusCode)
@@ -157,7 +157,7 @@ func TestGet(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, "/EAftGY", nil)
 		w := httptest.NewRecorder()
 
-		Get(w, r, appCtx)
+		Get(appCtx)(w, r)
 
 		res := w.Result()
 		assert.Equal(t, http.StatusBadRequest, res.StatusCode)
@@ -175,7 +175,7 @@ func TestGet(t *testing.T) {
 		postR := httptest.NewRequest(http.MethodPost, "/", body)
 		postW := httptest.NewRecorder()
 
-		Post(postW, postR, appCtx)
+		Post(appCtx)(postW, postR)
 
 		postRes := postW.Result()
 		defer postRes.Body.Close()
@@ -191,7 +191,7 @@ func TestGet(t *testing.T) {
 		r := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/%s", shortID), nil)
 		w := httptest.NewRecorder()
 
-		Get(w, r, appCtx)
+		Get(appCtx)(w, r)
 
 		res := w.Result()
 		assert.Equal(t, http.StatusTemporaryRedirect, res.StatusCode)
