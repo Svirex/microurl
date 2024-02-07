@@ -7,7 +7,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"regexp"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -30,9 +29,7 @@ func TestRouterPost(t *testing.T) {
 	testServer := httptest.NewServer(MainRoutes(appCtx))
 	defer testServer.Close()
 	u, _ := url.Parse(testServer.URL)
-	appCtx.Config.Host = u.Hostname()
-	port, _ := strconv.Atoi(u.Port())
-	appCtx.Config.Port = port
+	appCtx.Config.Addr = u.Host
 
 	{
 		req, err := http.NewRequest(http.MethodPost, testServer.URL, nil)

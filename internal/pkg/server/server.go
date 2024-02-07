@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/Svirex/microurl/internal/pkg/context"
@@ -10,14 +9,12 @@ import (
 )
 
 type Server struct {
-	Host string
-	Port int
+	Addr string
 }
 
-func NewServer(host string, port int) *Server {
+func NewServer(addr string) *Server {
 	return &Server{
-		Host: host,
-		Port: port,
+		Addr: addr,
 	}
 }
 
@@ -30,7 +27,7 @@ func MainRoutes(appCtx *context.AppContext) chi.Router {
 }
 
 func (s *Server) Start(appCtx *context.AppContext) {
-	err := http.ListenAndServe(fmt.Sprintf("%s:%d", s.Host, s.Port), MainRoutes(appCtx))
+	err := http.ListenAndServe(s.Addr, MainRoutes(appCtx))
 	if err != nil {
 		panic(err)
 	}

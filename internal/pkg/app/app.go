@@ -10,16 +10,16 @@ import (
 	"github.com/Svirex/microurl/internal/storage"
 )
 
-func Run(host string, port int) {
+func Run(addr string, baseURL string) {
 	config := config.Config{
-		Host: host,
-		Port: port,
+		Addr:    addr,
+		BaseURL: baseURL,
 	}
 	appCtx := context.AppContext{
 		Config:     &config,
 		Generator:  generators.NewSimpleGenerator(time.Now().UnixNano()),
 		Repository: storage.NewMapRepository(),
 	}
-	server := server.NewServer(config.Host, config.Port)
+	server := server.NewServer(addr)
 	server.Start(&appCtx)
 }

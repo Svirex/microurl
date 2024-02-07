@@ -37,8 +37,7 @@ func (m *MockRepository) Get(shortID string) (*string, error) {
 
 func TestPost(t *testing.T) {
 	config := config.Config{
-		Host: "localhost",
-		Port: 8080,
+		Addr: "localhost:8080",
 	}
 	appCtx := &context.AppContext{
 		Config:     &config,
@@ -76,7 +75,7 @@ func TestPost(t *testing.T) {
 
 		assert.NoError(t, err)
 
-		reg := regexp.MustCompile(fmt.Sprintf("^http://%s:%d/[A-Za-z]+$", config.Host, config.Port))
+		reg := regexp.MustCompile(fmt.Sprintf("^http://%s/[A-Za-z]+$", config.Addr))
 		assert.True(t, reg.MatchString(string(resBody)))
 	})
 	t.Run("couldn't add", func(t *testing.T) {
