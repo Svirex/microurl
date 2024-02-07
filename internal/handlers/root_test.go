@@ -76,7 +76,7 @@ func TestPost(t *testing.T) {
 
 		assert.NoError(t, err)
 
-		reg := regexp.MustCompile(fmt.Sprintf("^http://%s/[A-Za-z]+$", config.Addr))
+		reg := regexp.MustCompile(fmt.Sprintf("^%s/[A-Za-z]+$", config.Addr))
 		assert.True(t, reg.MatchString(string(resBody)))
 	})
 	t.Run("couldn't add", func(t *testing.T) {

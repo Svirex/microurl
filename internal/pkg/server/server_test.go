@@ -30,7 +30,7 @@ func TestRouterPost(t *testing.T) {
 	defer testServer.Close()
 	u, _ := url.Parse(testServer.URL)
 	appCtx.Config.Addr = u.Host
-	appCtx.Config.BaseURL = u.Host
+	appCtx.Config.BaseURL = "http://" + u.Host
 
 	{
 		req, err := http.NewRequest(http.MethodPost, testServer.URL, nil)
@@ -57,6 +57,7 @@ func TestRouterPost(t *testing.T) {
 		require.Equal(t, http.StatusCreated, resp.StatusCode)
 
 		reg := regexp.MustCompile(fmt.Sprintf("^%s/[A-Za-z]+$", testServer.URL))
+		fmt.Println(fmt.Sprintf("^%s/[A-Za-z]+$", testServer.URL), string(body))
 		require.True(t, reg.MatchString(string(body)))
 
 	}

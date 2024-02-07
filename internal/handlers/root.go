@@ -22,7 +22,7 @@ func Post(appCtx *context.AppContext) http.HandlerFunc {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		result := fmt.Sprintf("http://%s/%s", appCtx.Config.BaseURL, shortID)
+		result := fmt.Sprintf("%s/%s", appCtx.Config.BaseURL, shortID)
 		w.WriteHeader(http.StatusCreated)
 		w.Write([]byte(result))
 	})

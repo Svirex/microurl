@@ -3,34 +3,42 @@ package main
 import (
 	"flag"
 	"fmt"
-	"net/url"
+	"strings"
 
 	"github.com/Svirex/microurl/internal/pkg/app"
 )
 
-func getHostFromAddr(addr string) (string, error) {
-	a, err := url.Parse(addr)
-	if err != nil {
-		return "", err
+func getHostFromAddr(addr string) string {
+	if strings.HasPrefix(addr, "http://") {
+		return addr[7:]
+	} else if strings.HasPrefix(addr, "https://") {
+		return addr[8:]
 	}
-	return a.Host, nil
+	return addr
+}
+
+func getBaseURL(addr, baseURL string) string {
+	if baseURL != "" {
+		if strings.HasPrefix(baseURL, "http://") {
+			return baseURL
+		} else {
+			return "http://" + baseURL
+		}
+	}
+	host := getHostFromAddr(addr)
+	baseURL = "http://" + host
+	return baseURL
 }
 
 func main() {
-	var host string
+	var addr string
 	var baseURL string
 
-	flag.StringVar(&host, "a", "localhost:8080", "<host>:<port>")
+	flag.StringVar(&addr, "a", "localhost:8080", "<host>:<port>")
 	flag.StringVar(&baseURL, "b", "", "base url")
 	flag.Parse()
-	host, err := getHostFromAddr(host)
-	if err != nil {
-		panic(err)
-	}
-	if baseURL == "" {
-		baseURL = host
-	}
-
-	fmt.Println(host, baseURL)
+	host := getHostFromAddr(addr)
+	baseURL = getBaseURL(addr, baseURL)
+	fmt.Println(addr, host, baseURL)
 	app.Run(host, baseURL)
 }
