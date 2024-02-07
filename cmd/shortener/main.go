@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"strings"
 
 	"github.com/Svirex/microurl/internal/pkg/app"
@@ -39,6 +38,5 @@ func main() {
 	flag.Parse()
 	host := getHostFromAddr(addr)
 	baseURL = getBaseURL(addr, baseURL)
-	fmt.Println(addr, host, baseURL)
 	app.Run(host, baseURL)
 }
