@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/Svirex/microurl/internal/pkg/context"
+	"github.com/go-chi/chi/v5"
 )
 
 func Post(appCtx *context.AppContext) http.HandlerFunc {
@@ -30,16 +30,7 @@ func Post(appCtx *context.AppContext) http.HandlerFunc {
 
 func Get(appCtx *context.AppContext) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		splitted := strings.Split(r.RequestURI, "/")
-		if len(splitted) != 2 {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		shortID := splitted[1]
-		if len(shortID) == 0 {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
+		shortID := chi.URLParam(r, "shortID")
 		originURL, err := appCtx.Repository.Get(shortID)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
@@ -47,18 +38,5 @@ func Get(appCtx *context.AppContext) http.HandlerFunc {
 		}
 		w.Header().Set("Location", *originURL)
 		w.WriteHeader(http.StatusTemporaryRedirect)
-	})
-}
-
-func NewMainHandler(appCtx *context.AppContext) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodPost {
-			Post(appCtx)(w, r)
-		} else if r.Method == http.MethodGet {
-			Get(appCtx)(w, r)
-		} else {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
 	})
 }
