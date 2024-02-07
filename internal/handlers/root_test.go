@@ -37,7 +37,8 @@ func (m *MockRepository) Get(shortID string) (*string, error) {
 
 func TestPost(t *testing.T) {
 	config := config.Config{
-		Addr: "localhost:8080",
+		Addr:    "localhost:8080",
+		BaseURL: "localhost:8080",
 	}
 	appCtx := &context.AppContext{
 		Config:     &config,
