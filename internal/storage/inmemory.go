@@ -2,27 +2,34 @@ package storage
 
 import (
 	"fmt"
+	"sync"
 
+	"github.com/Svirex/microurl/internal/pkg/models"
 	"github.com/Svirex/microurl/internal/pkg/repositories"
 )
 
 type MapRepository struct {
-	data map[string]string
+	data  map[string]string
+	mutex sync.Mutex
 }
 
-var _ repositories.Repository = &MapRepository{}
+var _ repositories.Repository = (*MapRepository)(nil)
 
-func (m *MapRepository) Add(shortID, url string) error {
-	m.data[shortID] = url
+func (m *MapRepository) Add(d *models.RepositoryAddRecord) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.data[d.ShortID] = d.URL
 	return nil
 }
 
-func (m *MapRepository) Get(shortID string) (*string, error) {
-	u, ok := m.data[shortID]
+func (m *MapRepository) Get(d *models.RepositoryGetRecord) (*models.RepositoryGetResult, error) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	u, ok := m.data[d.ShortID]
 	if !ok {
-		return nil, fmt.Errorf("not found url for %s", shortID)
+		return nil, fmt.Errorf("not found url for %s", d.ShortID)
 	}
-	return &u, nil
+	return models.NewRepositoryGetResult(u), nil
 }
 
 func NewMapRepository() repositories.Repository {

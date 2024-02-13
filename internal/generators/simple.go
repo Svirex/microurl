@@ -8,13 +8,13 @@ import (
 
 const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-var _ util.Generator = &SimpleGenerator{}
+var _ util.Generator = (*SimpleGenerator)(nil)
 
 type SimpleGenerator struct {
 	Rand *rand.Rand
 }
 
-func (g *SimpleGenerator) RandString(size int) string {
+func (g *SimpleGenerator) RandString(size uint) string {
 	b := make([]byte, size)
 	for i := range b {
 		b[i] = letters[g.Rand.Intn(len(letters))]

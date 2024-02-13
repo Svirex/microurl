@@ -1,5 +1,5 @@
 package util
 
 type Generator interface {
-	RandString(size int) string
+	RandString(size uint) string
 }

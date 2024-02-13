@@ -10,27 +10,26 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Svirex/microurl/internal/apis"
 	"github.com/Svirex/microurl/internal/generators"
-	"github.com/Svirex/microurl/internal/pkg/config"
-	"github.com/Svirex/microurl/internal/pkg/context"
+	"github.com/Svirex/microurl/internal/pkg/models"
 	"github.com/Svirex/microurl/internal/pkg/repositories"
 	"github.com/Svirex/microurl/internal/storage"
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/require"
 )
 
 func TestRouterPost(t *testing.T) {
-	config := &config.Config{}
-	appCtx := &context.AppContext{
-		Config:     config,
-		Repository: storage.NewMapRepository(),
-		Generator:  generators.NewSimpleGenerator(255),
-	}
+	api := apis.NewShortenerApi(generators.NewSimpleGenerator(255), storage.NewMapRepository(), "http://svirex.ru", 8)
 
-	testServer := httptest.NewServer(MainRoutes(appCtx))
+	router := chi.NewRouter()
+	router.Route("/", apis.GetRoutesFunc(api))
+
+	testServer := httptest.NewServer(router)
 	defer testServer.Close()
+
 	u, _ := url.Parse(testServer.URL)
-	appCtx.Config.Addr = u.Host
-	appCtx.Config.BaseURL = "http://" + u.Host
+	api.BaseURL = "http://" + u.Host
 
 	{
 		req, err := http.NewRequest(http.MethodPost, testServer.URL, nil)
@@ -57,7 +56,6 @@ func TestRouterPost(t *testing.T) {
 		require.Equal(t, http.StatusCreated, resp.StatusCode)
 
 		reg := regexp.MustCompile(fmt.Sprintf("^%s/[A-Za-z]+$", testServer.URL))
-		fmt.Println(fmt.Sprintf("^%s/[A-Za-z]+$", testServer.URL), string(body))
 		require.True(t, reg.MatchString(string(body)))
 
 	}
@@ -66,26 +64,23 @@ func TestRouterPost(t *testing.T) {
 
 type MockRepository struct{}
 
-var _ repositories.Repository = &MockRepository{}
+var _ repositories.Repository = (*MockRepository)(nil)
 
-func (m *MockRepository) Add(shortID, url string) error {
+func (m *MockRepository) Add(*models.RepositoryAddRecord) error {
 	return fmt.Errorf("couldn't add")
 }
 
-func (m *MockRepository) Get(shortID string) (*string, error) {
-	result := "res"
-	return &result, nil
+func (m *MockRepository) Get(*models.RepositoryGetRecord) (*models.RepositoryGetResult, error) {
+	return models.NewRepositoryGetResult("res"), nil
 }
 
 func TestRouterPostWithMockRepo(t *testing.T) {
-	config := &config.Config{}
-	appCtx := &context.AppContext{
-		Config:     config,
-		Repository: &MockRepository{},
-		Generator:  generators.NewSimpleGenerator(255),
-	}
+	api := apis.NewShortenerApi(generators.NewSimpleGenerator(255), &MockRepository{}, "http://svirex.ru", 8)
 
-	testServer := httptest.NewServer(MainRoutes(appCtx))
+	router := chi.NewRouter()
+	router.Route("/", apis.GetRoutesFunc(api))
+
+	testServer := httptest.NewServer(router)
 	defer testServer.Close()
 
 	{
@@ -103,14 +98,12 @@ func TestRouterPostWithMockRepo(t *testing.T) {
 }
 
 func TestServerGet(t *testing.T) {
-	config := &config.Config{}
-	appCtx := &context.AppContext{
-		Config:     config,
-		Repository: storage.NewMapRepository(),
-		Generator:  generators.NewSimpleGenerator(255),
-	}
+	api := apis.NewShortenerApi(generators.NewSimpleGenerator(255), storage.NewMapRepository(), "http://svirex.ru", 8)
 
-	testServer := httptest.NewServer(MainRoutes(appCtx))
+	router := chi.NewRouter()
+	router.Route("/", apis.GetRoutesFunc(api))
+
+	testServer := httptest.NewServer(router)
 	defer testServer.Close()
 
 	{
