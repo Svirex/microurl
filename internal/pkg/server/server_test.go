@@ -20,7 +20,7 @@ import (
 )
 
 func TestRouterPost(t *testing.T) {
-	api := apis.NewShortenerApi(generators.NewSimpleGenerator(255), storage.NewMapRepository(), "http://svirex.ru", 8)
+	api := apis.NewShortenerAPI(generators.NewSimpleGenerator(255), storage.NewMapRepository(), "http://svirex.ru", 8)
 
 	router := chi.NewRouter()
 	router.Route("/", apis.GetRoutesFunc(api))
@@ -75,7 +75,7 @@ func (m *MockRepository) Get(*models.RepositoryGetRecord) (*models.RepositoryGet
 }
 
 func TestRouterPostWithMockRepo(t *testing.T) {
-	api := apis.NewShortenerApi(generators.NewSimpleGenerator(255), &MockRepository{}, "http://svirex.ru", 8)
+	api := apis.NewShortenerAPI(generators.NewSimpleGenerator(255), &MockRepository{}, "http://svirex.ru", 8)
 
 	router := chi.NewRouter()
 	router.Route("/", apis.GetRoutesFunc(api))
@@ -98,7 +98,7 @@ func TestRouterPostWithMockRepo(t *testing.T) {
 }
 
 func TestServerGet(t *testing.T) {
-	api := apis.NewShortenerApi(generators.NewSimpleGenerator(255), storage.NewMapRepository(), "http://svirex.ru", 8)
+	api := apis.NewShortenerAPI(generators.NewSimpleGenerator(255), storage.NewMapRepository(), "http://svirex.ru", 8)
 
 	router := chi.NewRouter()
 	router.Route("/", apis.GetRoutesFunc(api))

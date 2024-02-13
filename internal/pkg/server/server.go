@@ -13,13 +13,13 @@ import (
 
 type Server struct {
 	Addr string
-	API  *apis.ShortenerApi
+	API  *apis.ShortenerAPI
 }
 
 func NewServer(addr string, baseURL string, generator util.Generator, repository repositories.Repository, shortIDSize uint) *Server {
 	return &Server{
 		Addr: addr,
-		API:  apis.NewShortenerApi(generator, repository, baseURL, shortIDSize),
+		API:  apis.NewShortenerAPI(generator, repository, baseURL, shortIDSize),
 	}
 }
 
