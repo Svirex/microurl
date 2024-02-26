@@ -5,6 +5,9 @@ import (
 	"net/http"
 
 	"github.com/Svirex/microurl/internal/apis"
+	lg "github.com/Svirex/microurl/internal/logging"
+	"github.com/Svirex/microurl/internal/pkg/logging"
+	appmiddleware "github.com/Svirex/microurl/internal/pkg/middleware"
 	"github.com/Svirex/microurl/internal/pkg/repositories"
 	"github.com/Svirex/microurl/internal/pkg/util"
 	"github.com/go-chi/chi/v5"
@@ -23,9 +26,18 @@ func NewServer(addr string, baseURL string, generator util.Generator, repository
 	}
 }
 
-func (s *Server) SetupRoutes() chi.Router {
-	router := chi.NewRouter()
+type Options struct {
+	loggingMiddlwareLogger logging.Logger
+}
+
+func SetupMiddlewares(router chi.Router, options *Options) {
 	router.Use(middleware.Recoverer)
+	router.Use(appmiddleware.NewLoggingMiddleware(options.loggingMiddlwareLogger))
+}
+
+func (s *Server) SetupRoutes(options *Options) chi.Router {
+	router := chi.NewRouter()
+	SetupMiddlewares(router, options)
 
 	router.Route("/", apis.GetRoutesFunc(s.API))
 
@@ -33,8 +45,15 @@ func (s *Server) SetupRoutes() chi.Router {
 }
 
 func (s *Server) Start() {
-	router := s.SetupRoutes()
-	err := http.ListenAndServe(s.Addr, router)
+	logger, err := lg.NewDefaultLogger()
+	if err != nil {
+		panic(err)
+	}
+	options := &Options{
+		loggingMiddlwareLogger: logger,
+	}
+	router := s.SetupRoutes(options)
+	err = http.ListenAndServe(s.Addr, router)
 	if errors.Is(err, http.ErrServerClosed) {
 		return
 	} else {
