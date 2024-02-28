@@ -1,6 +1,8 @@
 package server
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -172,4 +174,83 @@ func TestServerGet(t *testing.T) {
 		resp.Body.Close()
 
 	}
+}
+
+func TestServerJSONShorten(t *testing.T) {
+	api := apis.NewShortenerAPI(generators.NewSimpleGenerator(255), storage.NewMapRepository(), "http://svirex.ru", 8)
+
+	router := chi.NewRouter()
+	router.Route("/", apis.GetRoutesFunc(api))
+
+	testServer := httptest.NewServer(router)
+	defer testServer.Close()
+
+	apiURL := testServer.URL + "/api/shorten"
+	// Not exists application/json header
+	{
+		req, err := http.NewRequest(http.MethodPost, apiURL, http.NoBody)
+		require.NoError(t, err)
+
+		resp, err := testServer.Client().Do(req)
+		require.NoError(t, err)
+		resp.Body.Close()
+
+		require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	}
+	// Empty body
+	{
+		req, err := http.NewRequest(http.MethodPost, apiURL, http.NoBody)
+		require.NoError(t, err)
+
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := testServer.Client().Do(req)
+		require.NoError(t, err)
+		resp.Body.Close()
+
+		require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	}
+	// Not JSON body
+	{
+		req, err := http.NewRequest(http.MethodPost, apiURL, strings.NewReader("http://svirex.ru"))
+		require.NoError(t, err)
+
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := testServer.Client().Do(req)
+		require.NoError(t, err)
+		resp.Body.Close()
+
+		require.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	}
+	// Good
+	{
+		in := models.InputJSON{
+			URL: "http://svirex.ru",
+		}
+		body, _ := json.Marshal(in)
+		req, err := http.NewRequest(http.MethodPost, apiURL, bytes.NewReader(body))
+		require.NoError(t, err)
+
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := testServer.Client().Do(req)
+		require.NoError(t, err)
+
+		require.Equal(t, http.StatusCreated, resp.StatusCode)
+		require.Equal(t, resp.Header.Get("Content-Type"), "application/json")
+
+		body, err = io.ReadAll(resp.Body)
+		resp.Body.Close()
+		require.NoError(t, err)
+
+		var resultJSON models.ResultJSON
+		err = json.Unmarshal(body, &resultJSON)
+		require.NoError(t, err)
+
+		reg := regexp.MustCompile(fmt.Sprintf("^%s/[A-Za-z]+$", "http://svirex.ru"))
+		fmt.Println(fmt.Sprintf("^%s/[A-Za-z]+$", "http://svirex.ru"), resultJSON.ShortURL)
+		require.True(t, reg.MatchString(resultJSON.ShortURL))
+	}
+
 }
