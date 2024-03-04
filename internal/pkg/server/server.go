@@ -33,6 +33,8 @@ type Options struct {
 func SetupMiddlewares(router chi.Router, options *Options) {
 	router.Use(middleware.Recoverer)
 	router.Use(appmiddleware.NewLoggingMiddleware(options.loggingMiddlwareLogger))
+	router.Use(appmiddleware.GzipHandler)
+	router.Use(middleware.Compress(5, "text/html", "application/json"))
 }
 
 func (s *Server) SetupRoutes(options *Options) chi.Router {
