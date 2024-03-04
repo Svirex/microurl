@@ -9,8 +9,9 @@ import (
 )
 
 type Config struct {
-	Addr    string `env:"SERVER_ADDRESS"`
-	BaseURL string `env:"BASE_URL"`
+	Addr            string `env:"SERVER_ADDRESS"`
+	BaseURL         string `env:"BASE_URL"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 }
 
 func ParseEnv() *Config {
@@ -25,6 +26,7 @@ func ParseFlags() *Config {
 	cfg := &Config{}
 	flag.StringVar(&cfg.Addr, "a", "localhost:8080", "<host>:<port>")
 	flag.StringVar(&cfg.BaseURL, "b", "", "base URL")
+	flag.StringVar(&cfg.FileStoragePath, "f", "/tmp/short-url-db.json", "file for save records")
 	flag.Parse()
 	return cfg
 }
@@ -61,14 +63,18 @@ func prepareConfig(cfg *Config) {
 
 func mergeConf(envCfg *Config, flagConfig *Config) *Config {
 	cfg := &Config{
-		Addr:    envCfg.Addr,
-		BaseURL: envCfg.BaseURL,
+		Addr:            envCfg.Addr,
+		BaseURL:         envCfg.BaseURL,
+		FileStoragePath: envCfg.FileStoragePath,
 	}
 	if cfg.Addr == "" {
 		cfg.Addr = flagConfig.Addr
 	}
 	if cfg.BaseURL == "" {
 		cfg.BaseURL = flagConfig.BaseURL
+	}
+	if cfg.FileStoragePath == "" {
+		cfg.FileStoragePath = flagConfig.FileStoragePath
 	}
 	return cfg
 }
