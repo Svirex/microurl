@@ -6,7 +6,12 @@ type Record struct {
 	URL     string `json:"original_url"`
 }
 
-type Backup interface {
-	Write(record *Record) error
+type BackupReader interface {
 	Read() (*Record, error)
+	Close() error
+}
+
+type BackupWriter interface {
+	Write(*Record) error
+	Close() error
 }

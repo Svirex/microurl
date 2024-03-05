@@ -7,5 +7,8 @@ import (
 
 func main() {
 	cfg := config.Parse()
-	app.Run(cfg.Addr, cfg.BaseURL)
+	err := app.Run(cfg)
+	if err != nil {
+		panic(err)
+	}
 }

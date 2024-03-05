@@ -19,25 +19,30 @@ type Server struct {
 	API  *apis.ShortenerAPI
 }
 
-func NewServer(addr string, baseURL string, generator util.Generator, repository repositories.Repository, shortIDSize uint) *Server {
-	return &Server{
-		Addr: addr,
-		API:  apis.NewShortenerAPI(generator, repository, baseURL, shortIDSize),
+func NewServer(options *Options) (*Server, error) {
+	apiOptions := apis.NewOptions(options.BaseURL, options.FileBackupPath, options.Generator, options.Repository, options.ShortIDSize)
+	shortenerAPI, err := apis.NewShortenerAPI(apiOptions)
+	if err != nil {
+		return nil, err
 	}
+	return &Server{
+		Addr: options.Addr,
+		API:  shortenerAPI,
+	}, nil
 }
 
-type Options struct {
+type options struct {
 	loggingMiddlwareLogger logging.Logger
 }
 
-func SetupMiddlewares(router chi.Router, options *Options) {
+func SetupMiddlewares(router chi.Router, options *options) {
 	router.Use(middleware.Recoverer)
 	router.Use(appmiddleware.NewLoggingMiddleware(options.loggingMiddlwareLogger))
 	router.Use(appmiddleware.GzipHandler)
 	router.Use(middleware.Compress(5, "text/html", "application/json"))
 }
 
-func (s *Server) SetupRoutes(options *Options) chi.Router {
+func (s *Server) SetupRoutes(options *options) chi.Router {
 	router := chi.NewRouter()
 	SetupMiddlewares(router, options)
 
@@ -46,19 +51,39 @@ func (s *Server) SetupRoutes(options *Options) chi.Router {
 	return router
 }
 
-func (s *Server) Start() {
+func (s *Server) Start() error {
 	logger, err := lg.NewDefaultLogger()
 	if err != nil {
-		panic(err)
+		return err
 	}
-	options := &Options{
+	options := &options{
 		loggingMiddlwareLogger: logger,
 	}
 	router := s.SetupRoutes(options)
 	err = http.ListenAndServe(s.Addr, router)
 	if errors.Is(err, http.ErrServerClosed) {
-		return
+		return nil
 	} else {
-		panic(err)
+		return err
+	}
+}
+
+type Options struct {
+	Addr           string
+	BaseURL        string
+	FileBackupPath string
+	Generator      util.Generator
+	Repository     repositories.Repository
+	ShortIDSize    uint
+}
+
+func NewOptions(addr, baseURL, fileBackupPath string, generator util.Generator, repository repositories.Repository, shortIDSize uint) *Options {
+	return &Options{
+		Addr:           addr,
+		BaseURL:        baseURL,
+		FileBackupPath: fileBackupPath,
+		Generator:      generator,
+		Repository:     repository,
+		ShortIDSize:    shortIDSize,
 	}
 }

@@ -22,7 +22,9 @@ import (
 )
 
 func TestRouterPost(t *testing.T) {
-	api := apis.NewShortenerAPI(generators.NewSimpleGenerator(255), storage.NewMapRepository(), "http://svirex.ru", 8)
+	options := apis.NewOptions("http://svirex.ru", "/tmp/short-url-db.json", generators.NewSimpleGenerator(255), storage.NewMapRepository(), 8)
+	api, err := apis.NewShortenerAPI(options)
+	require.NoError(t, err)
 
 	router := chi.NewRouter()
 	router.Route("/", apis.GetRoutesFunc(api))
@@ -77,7 +79,9 @@ func (m *MockRepository) Get(*models.RepositoryGetRecord) (*models.RepositoryGet
 }
 
 func TestRouterPostWithMockRepo(t *testing.T) {
-	api := apis.NewShortenerAPI(generators.NewSimpleGenerator(255), &MockRepository{}, "http://svirex.ru", 8)
+	options := apis.NewOptions("http://svirex.ru", "/tmp/short-url-db.json", generators.NewSimpleGenerator(255), &MockRepository{}, 8)
+	api, err := apis.NewShortenerAPI(options)
+	require.NoError(t, err)
 
 	router := chi.NewRouter()
 	router.Route("/", apis.GetRoutesFunc(api))
@@ -100,7 +104,9 @@ func TestRouterPostWithMockRepo(t *testing.T) {
 }
 
 func TestServerGet(t *testing.T) {
-	api := apis.NewShortenerAPI(generators.NewSimpleGenerator(255), storage.NewMapRepository(), "http://svirex.ru", 8)
+	options := apis.NewOptions("http://svirex.ru", "/tmp/short-url-db.json", generators.NewSimpleGenerator(255), storage.NewMapRepository(), 8)
+	api, err := apis.NewShortenerAPI(options)
+	require.NoError(t, err)
 
 	router := chi.NewRouter()
 	router.Route("/", apis.GetRoutesFunc(api))
@@ -177,7 +183,9 @@ func TestServerGet(t *testing.T) {
 }
 
 func TestServerJSONShorten(t *testing.T) {
-	api := apis.NewShortenerAPI(generators.NewSimpleGenerator(255), storage.NewMapRepository(), "http://svirex.ru", 8)
+	options := apis.NewOptions("http://svirex.ru", "/tmp/short-url-db.json", generators.NewSimpleGenerator(255), storage.NewMapRepository(), 8)
+	api, err := apis.NewShortenerAPI(options)
+	require.NoError(t, err)
 
 	router := chi.NewRouter()
 	router.Route("/", apis.GetRoutesFunc(api))

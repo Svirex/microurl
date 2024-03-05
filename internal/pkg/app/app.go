@@ -4,13 +4,20 @@ import (
 	"time"
 
 	"github.com/Svirex/microurl/internal/generators"
+	"github.com/Svirex/microurl/internal/pkg/config"
 	"github.com/Svirex/microurl/internal/pkg/server"
 	"github.com/Svirex/microurl/internal/storage"
 )
 
-func Run(addr string, baseURL string) {
+const SHORT_URL_LENGTH uint = 8
+
+func Run(cfg *config.Config) error {
 	generator := generators.NewSimpleGenerator(time.Now().UnixNano())
 	repository := storage.NewMapRepository()
-	server := server.NewServer(addr, baseURL, generator, repository, 8)
-	server.Start()
+	options := server.NewOptions(cfg.Addr, cfg.BaseURL, cfg.FileStoragePath, generator, repository, SHORT_URL_LENGTH)
+	server, err := server.NewServer(options)
+	if err != nil {
+		return err
+	}
+	return server.Start()
 }
