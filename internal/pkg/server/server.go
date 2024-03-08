@@ -19,14 +19,13 @@ type Server struct {
 	API  *apis.ShortenerAPI
 }
 
-func NewServer(options *Options) (*Server, error) {
-	apiOptions := apis.NewOptions(options.BaseURL, options.FileBackupPath, options.Generator, options.Repository, options.ShortIDSize)
-	shortenerAPI, err := apis.NewShortenerAPI(apiOptions)
+func NewServer(addr, baseURL string, generator util.Generator, repository repositories.Repository, shortIDSize uint) (*Server, error) {
+	shortenerAPI, err := apis.NewShortenerAPI(baseURL, generator, repository, shortIDSize)
 	if err != nil {
 		return nil, err
 	}
 	return &Server{
-		Addr: options.Addr,
+		Addr: addr,
 		API:  shortenerAPI,
 	}, nil
 }
@@ -65,25 +64,5 @@ func (s *Server) Start() error {
 		return nil
 	} else {
 		return err
-	}
-}
-
-type Options struct {
-	Addr           string
-	BaseURL        string
-	FileBackupPath string
-	Generator      util.Generator
-	Repository     repositories.Repository
-	ShortIDSize    uint
-}
-
-func NewOptions(addr, baseURL, fileBackupPath string, generator util.Generator, repository repositories.Repository, shortIDSize uint) *Options {
-	return &Options{
-		Addr:           addr,
-		BaseURL:        baseURL,
-		FileBackupPath: fileBackupPath,
-		Generator:      generator,
-		Repository:     repository,
-		ShortIDSize:    shortIDSize,
 	}
 }

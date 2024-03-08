@@ -8,7 +8,7 @@ import (
 var _ logging.Logger = (*DefaultLogger)(nil)
 
 type DefaultLogger struct {
-	Logger zap.SugaredLogger
+	Logger *zap.SugaredLogger
 }
 
 func (logger *DefaultLogger) Info(params ...any) {
@@ -21,6 +21,6 @@ func NewDefaultLogger() (logging.Logger, error) {
 		return nil, err
 	}
 	return &DefaultLogger{
-		Logger: *logger.Sugar(),
+		Logger: logger.Sugar(),
 	}, nil
 }

@@ -2,6 +2,7 @@ package backup
 
 import (
 	"encoding/json"
+	"io"
 	"os"
 
 	"github.com/Svirex/microurl/internal/pkg/backup"
@@ -30,7 +31,7 @@ func (reader *FileBackupReader) Read() (*backup.Record, error) {
 		}
 		return record, nil
 	}
-	return nil, nil
+	return nil, io.EOF
 }
 
 func (reader *FileBackupReader) Close() error {

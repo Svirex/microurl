@@ -13,9 +13,11 @@ const shortURLLength uint = 8
 
 func Run(cfg *config.Config) error {
 	generator := generators.NewSimpleGenerator(time.Now().UnixNano())
-	repository := storage.NewMapRepository()
-	options := server.NewOptions(cfg.Addr, cfg.BaseURL, cfg.FileStoragePath, generator, repository, shortURLLength)
-	server, err := server.NewServer(options)
+	repository, err := storage.NewMapRepository(cfg.FileStoragePath)
+	if err != nil {
+		return err
+	}
+	server, err := server.NewServer(cfg.Addr, cfg.BaseURL, generator, repository, shortURLLength)
 	if err != nil {
 		return err
 	}

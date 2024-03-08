@@ -19,33 +19,14 @@ type ShortenerAPI struct {
 	BaseURL string
 }
 
-type Options struct {
-	Generator      util.Generator
-	Repository     repositories.Repository
-	FileBackupPath string
-	BaseURL        string
-	ShortIDSize    uint
-}
-
-func NewOptions(baseURL, fileBackupPath string, generator util.Generator, repository repositories.Repository, shortIDSize uint) *Options {
-	return &Options{
-		Generator:      generator,
-		Repository:     repository,
-		FileBackupPath: fileBackupPath,
-		BaseURL:        baseURL,
-		ShortIDSize:    shortIDSize,
-	}
-}
-
-func NewShortenerAPI(options *Options) (*ShortenerAPI, error) {
-	srvOptions := srv.NewOptions(options.FileBackupPath, options.Generator, options.Repository, options.ShortIDSize)
-	shortenerService, err := srv.NewShortenerService(srvOptions)
+func NewShortenerAPI(baseURL string, generator util.Generator, repository repositories.Repository, shortIDSize uint) (*ShortenerAPI, error) {
+	shortenerService, err := srv.NewShortenerService(generator, repository, shortIDSize)
 	if err != nil {
 		return nil, err
 	}
 	return &ShortenerAPI{
 		Service: shortenerService,
-		BaseURL: options.BaseURL,
+		BaseURL: baseURL,
 	}, nil
 }
 
