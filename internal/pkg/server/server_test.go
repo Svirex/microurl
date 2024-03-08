@@ -22,8 +22,9 @@ import (
 )
 
 func TestRouterPost(t *testing.T) {
-	options := apis.NewOptions("http://svirex.ru", "/tmp/short-url-db.json", generators.NewSimpleGenerator(255), storage.NewMapRepository(), 8)
-	api, err := apis.NewShortenerAPI(options)
+	rep, err := storage.NewMapRepository("/tmp/short-url-db.json")
+	require.NoError(t, err)
+	api, err := apis.NewShortenerAPI("http://svirex.ru", generators.NewSimpleGenerator(255), rep, 8)
 	require.NoError(t, err)
 
 	router := chi.NewRouter()
@@ -79,8 +80,7 @@ func (m *MockRepository) Get(*models.RepositoryGetRecord) (*models.RepositoryGet
 }
 
 func TestRouterPostWithMockRepo(t *testing.T) {
-	options := apis.NewOptions("http://svirex.ru", "/tmp/short-url-db.json", generators.NewSimpleGenerator(255), &MockRepository{}, 8)
-	api, err := apis.NewShortenerAPI(options)
+	api, err := apis.NewShortenerAPI("http://svirex.ru", generators.NewSimpleGenerator(255), &MockRepository{}, 8)
 	require.NoError(t, err)
 
 	router := chi.NewRouter()
@@ -104,8 +104,9 @@ func TestRouterPostWithMockRepo(t *testing.T) {
 }
 
 func TestServerGet(t *testing.T) {
-	options := apis.NewOptions("http://svirex.ru", "/tmp/short-url-db.json", generators.NewSimpleGenerator(255), storage.NewMapRepository(), 8)
-	api, err := apis.NewShortenerAPI(options)
+	rep, err := storage.NewMapRepository("/tmp/short-url-db.json")
+	require.NoError(t, err)
+	api, err := apis.NewShortenerAPI("http://svirex.ru", generators.NewSimpleGenerator(255), rep, 8)
 	require.NoError(t, err)
 
 	router := chi.NewRouter()
@@ -183,8 +184,9 @@ func TestServerGet(t *testing.T) {
 }
 
 func TestServerJSONShorten(t *testing.T) {
-	options := apis.NewOptions("http://svirex.ru", "/tmp/short-url-db.json", generators.NewSimpleGenerator(255), storage.NewMapRepository(), 8)
-	api, err := apis.NewShortenerAPI(options)
+	rep, err := storage.NewMapRepository("/tmp/short-url-db.json")
+	require.NoError(t, err)
+	api, err := apis.NewShortenerAPI("http://svirex.ru", generators.NewSimpleGenerator(255), rep, 8)
 	require.NoError(t, err)
 
 	router := chi.NewRouter()
