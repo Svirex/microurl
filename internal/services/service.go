@@ -12,6 +12,7 @@ import (
 var ErrUnableAddRecord = errors.New("unable add record into repository")
 var ErrNotFound = errors.New("record not found")
 var ErrSomethingWrong = errors.New("unknown error")
+var ErrUnableBackupRecord = errors.New("unable write record into backup")
 
 type ShortenerService struct {
 	Generator   util.Generator
@@ -19,12 +20,12 @@ type ShortenerService struct {
 	ShortIDSize uint
 }
 
-func NewShortenerService(generator util.Generator, repository repositories.Repository, shortIDSize uint) services.Shortener {
+func NewShortenerService(generator util.Generator, repository repositories.Repository, shortIDSize uint) (services.Shortener, error) {
 	return &ShortenerService{
 		Generator:   generator,
 		Repository:  repository,
 		ShortIDSize: shortIDSize,
-	}
+	}, nil
 }
 
 var _ services.Shortener = (*ShortenerService)(nil)

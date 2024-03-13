@@ -1,6 +1,7 @@
 package apis
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -18,11 +19,15 @@ type ShortenerAPI struct {
 	BaseURL string
 }
 
-func NewShortenerAPI(generator util.Generator, repository repositories.Repository, baseURL string, shortIDSize uint) *ShortenerAPI {
-	return &ShortenerAPI{
-		Service: srv.NewShortenerService(generator, repository, shortIDSize),
-		BaseURL: baseURL,
+func NewShortenerAPI(baseURL string, generator util.Generator, repository repositories.Repository, shortIDSize uint) (*ShortenerAPI, error) {
+	shortenerService, err := srv.NewShortenerService(generator, repository, shortIDSize)
+	if err != nil {
+		return nil, err
 	}
+	return &ShortenerAPI{
+		Service: shortenerService,
+		BaseURL: baseURL,
+	}, nil
 }
 
 func (api *ShortenerAPI) Post(w http.ResponseWriter, r *http.Request) {
@@ -53,9 +58,47 @@ func (api *ShortenerAPI) Get(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusTemporaryRedirect)
 }
 
+func (api *ShortenerAPI) JSONShorten(w http.ResponseWriter, r *http.Request) {
+	contentType := r.Header.Get("Content-Type")
+	if contentType != "application/json" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	body, err := io.ReadAll(r.Body)
+	r.Body.Close()
+	if err != nil || len(body) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	var inputJSON models.InputJSON
+	err = json.Unmarshal(body, &inputJSON)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	serviceResult, err := api.Service.Add(models.NewServiceAddRecord(inputJSON.URL))
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	result := &models.ResultJSON{
+		ShortURL: fmt.Sprintf("%s/%s", api.BaseURL, serviceResult.ShortID),
+	}
+	body, err = json.Marshal(result)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	w.Write(body)
+
+}
+
 func GetRoutesFunc(api *ShortenerAPI) func(r chi.Router) {
 	return func(r chi.Router) {
 		r.Get("/{shortID:[A-Za-z]+}", api.Get)
 		r.Post("/", api.Post)
+		r.Post("/api/shorten", api.JSONShorten)
 	}
 }
