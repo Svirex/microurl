@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -17,12 +18,18 @@ import (
 	"github.com/Svirex/microurl/internal/pkg/server"
 	"github.com/Svirex/microurl/internal/services"
 	"github.com/Svirex/microurl/internal/storage"
+	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/jmoiron/sqlx"
 )
 
 const shortURLLength uint = 8
 
 func main() {
 	cfg := config.Parse()
+
+	if cfg.PostgresDSN == "" {
+		panic("Need setup postgres DSN by DATABASE_DSN env variable or -d flag")
+	}
 
 	logger, err := logging.NewDefaultLogger()
 	if err != nil {
@@ -31,6 +38,7 @@ func main() {
 	defer logger.Shutdown()
 
 	generator := generators.NewSimpleGenerator(time.Now().UnixNano())
+	logger.Info("Created generator...")
 
 	var repository repositories.URLRepository
 
@@ -44,12 +52,22 @@ func main() {
 			panic(err)
 		}
 	}
+	logger.Info("Created repository...", "type=", fmt.Sprintf("%T", repository))
 	defer repository.Shutdown()
 
 	service := services.NewShortenerService(generator, repository, shortURLLength)
+	logger.Info("Created shorten service...")
 	defer service.Shutdown()
 
-	api := apis.NewShortenerAPI(service, cfg.BaseURL)
+	db := sqlx.MustOpen("pgx", cfg.PostgresDSN)
+	logger.Info("Created DB connection...")
+	defer db.Close()
+
+	dbCheckService := services.NewDBCheckService(db)
+	logger.Info("Created DB check service...")
+	defer dbCheckService.Shutdown()
+
+	api := apis.NewShortenerAPI(service, dbCheckService, cfg.BaseURL)
 	handler := api.Routes(logger)
 
 	serverObj := server.NewServer(serverCtx, cfg.Addr, handler)
@@ -59,7 +77,7 @@ func main() {
 
 	go func() {
 		s := <-signalChan
-		logger.Info("Received os.Signal. Try graceful shutdown.", "signal", s)
+		logger.Info("Received os.Signal. Try graceful shutdown.", "signal=", s)
 
 		shutdownCtx, shutdownCancel := context.WithTimeout(serverCtx, 30*time.Second)
 		defer shutdownCancel()
@@ -82,7 +100,7 @@ func main() {
 
 		logger.Info("Server shutdowned")
 	}()
-
+	logger.Info("Starting listen and serve...", "addr=", serverObj.Addr)
 	err = serverObj.ListenAndServe()
 	if err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)

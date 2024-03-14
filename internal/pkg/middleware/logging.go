@@ -23,9 +23,9 @@ func (writer *loggingResponseWriter) Write(data []byte) (int, error) {
 	return size, err
 }
 
-func (writer *loggingResponseWriter) WriteHeader(statusCode int) {
-	writer.ResponseWriter.WriteHeader(statusCode)
-	writer.responseData.status = statusCode
+func (w *loggingResponseWriter) WriteHeader(statusCode int) {
+	w.ResponseWriter.WriteHeader(statusCode)
+	w.responseData.status = statusCode
 }
 
 func NewLoggingMiddleware(logger logging.Logger) func(next http.Handler) http.Handler {
