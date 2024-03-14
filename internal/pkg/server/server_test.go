@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -14,23 +15,31 @@ import (
 
 	"github.com/Svirex/microurl/internal/apis"
 	"github.com/Svirex/microurl/internal/generators"
+	"github.com/Svirex/microurl/internal/pkg/logging"
 	"github.com/Svirex/microurl/internal/pkg/models"
 	"github.com/Svirex/microurl/internal/pkg/repositories"
+	"github.com/Svirex/microurl/internal/services"
 	"github.com/Svirex/microurl/internal/storage"
-	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/require"
 )
 
+type FakeLogger struct{}
+
+var _ logging.Logger = (*FakeLogger)(nil)
+
+func (*FakeLogger) Info(params ...any)  {}
+func (*FakeLogger) Error(params ...any) {}
+func (*FakeLogger) Shutdown() error     { return nil }
+
 func TestRouterPost(t *testing.T) {
-	rep, err := storage.NewMapRepository("/tmp/short-url-db.json")
-	require.NoError(t, err)
-	api, err := apis.NewShortenerAPI("http://svirex.ru", generators.NewSimpleGenerator(255), rep, 8)
-	require.NoError(t, err)
+	rep := storage.NewMapRepository()
+	require.NotNil(t, rep)
+	service := services.NewShortenerService(generators.NewSimpleGenerator(255), rep, 8)
+	require.NotNil(t, service)
+	api := apis.NewShortenerAPI(service, "http://svirex.ru")
+	require.NotNil(t, api)
 
-	router := chi.NewRouter()
-	router.Route("/", apis.GetRoutesFunc(api))
-
-	testServer := httptest.NewServer(router)
+	testServer := httptest.NewServer(api.Routes(&FakeLogger{}))
 	defer testServer.Close()
 
 	u, _ := url.Parse(testServer.URL)
@@ -69,24 +78,27 @@ func TestRouterPost(t *testing.T) {
 
 type MockRepository struct{}
 
-var _ repositories.Repository = (*MockRepository)(nil)
+var _ repositories.URLRepository = (*MockRepository)(nil)
 
-func (m *MockRepository) Add(*models.RepositoryAddRecord) error {
+func (m *MockRepository) Add(context.Context, *models.RepositoryAddRecord) error {
 	return fmt.Errorf("couldn't add")
 }
 
-func (m *MockRepository) Get(*models.RepositoryGetRecord) (*models.RepositoryGetResult, error) {
+func (m *MockRepository) Get(context.Context, *models.RepositoryGetRecord) (*models.RepositoryGetResult, error) {
 	return models.NewRepositoryGetResult("res"), nil
 }
 
+func (m *MockRepository) Shutdown() error {
+	return nil
+}
+
 func TestRouterPostWithMockRepo(t *testing.T) {
-	api, err := apis.NewShortenerAPI("http://svirex.ru", generators.NewSimpleGenerator(255), &MockRepository{}, 8)
-	require.NoError(t, err)
+	service := services.NewShortenerService(generators.NewSimpleGenerator(255), &MockRepository{}, 8)
+	require.NotNil(t, service)
+	api := apis.NewShortenerAPI(service, "http://svirex.ru")
+	require.NotNil(t, api)
 
-	router := chi.NewRouter()
-	router.Route("/", apis.GetRoutesFunc(api))
-
-	testServer := httptest.NewServer(router)
+	testServer := httptest.NewServer(api.Routes(&FakeLogger{}))
 	defer testServer.Close()
 
 	{
@@ -104,15 +116,14 @@ func TestRouterPostWithMockRepo(t *testing.T) {
 }
 
 func TestServerGet(t *testing.T) {
-	rep, err := storage.NewMapRepository("/tmp/short-url-db.json")
-	require.NoError(t, err)
-	api, err := apis.NewShortenerAPI("http://svirex.ru", generators.NewSimpleGenerator(255), rep, 8)
-	require.NoError(t, err)
+	rep := storage.NewMapRepository()
+	require.NotNil(t, rep)
+	service := services.NewShortenerService(generators.NewSimpleGenerator(255), rep, 8)
+	require.NotNil(t, service)
+	api := apis.NewShortenerAPI(service, "http://svirex.ru")
+	require.NotNil(t, api)
 
-	router := chi.NewRouter()
-	router.Route("/", apis.GetRoutesFunc(api))
-
-	testServer := httptest.NewServer(router)
+	testServer := httptest.NewServer(api.Routes(&FakeLogger{}))
 	defer testServer.Close()
 
 	{
@@ -184,15 +195,14 @@ func TestServerGet(t *testing.T) {
 }
 
 func TestServerJSONShorten(t *testing.T) {
-	rep, err := storage.NewMapRepository("/tmp/short-url-db.json")
-	require.NoError(t, err)
-	api, err := apis.NewShortenerAPI("http://svirex.ru", generators.NewSimpleGenerator(255), rep, 8)
-	require.NoError(t, err)
+	rep := storage.NewMapRepository()
+	require.NotNil(t, rep)
+	service := services.NewShortenerService(generators.NewSimpleGenerator(255), rep, 8)
+	require.NotNil(t, service)
+	api := apis.NewShortenerAPI(service, "http://svirex.ru")
+	require.NotNil(t, api)
 
-	router := chi.NewRouter()
-	router.Route("/", apis.GetRoutesFunc(api))
-
-	testServer := httptest.NewServer(router)
+	testServer := httptest.NewServer(api.Routes(&FakeLogger{}))
 	defer testServer.Close()
 
 	apiURL := testServer.URL + "/api/shorten"

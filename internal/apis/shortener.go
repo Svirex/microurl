@@ -6,11 +6,11 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/Svirex/microurl/internal/pkg/logging"
+	appmiddleware "github.com/Svirex/microurl/internal/pkg/middleware"
 	"github.com/Svirex/microurl/internal/pkg/models"
-	"github.com/Svirex/microurl/internal/pkg/repositories"
 	"github.com/Svirex/microurl/internal/pkg/services"
-	"github.com/Svirex/microurl/internal/pkg/util"
-	srv "github.com/Svirex/microurl/internal/services"
+	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -19,16 +19,23 @@ type ShortenerAPI struct {
 	BaseURL string
 }
 
-func NewShortenerAPI(baseURL string, generator util.Generator, repository repositories.Repository, shortIDSize uint) (*ShortenerAPI, error) {
-	shortenerService, err := srv.NewShortenerService(generator, repository, shortIDSize)
-	if err != nil {
-		return nil, err
-	}
+func NewShortenerAPI(service services.Shortener, baseURL string) *ShortenerAPI {
 	return &ShortenerAPI{
-		Service: shortenerService,
+		Service: service,
 		BaseURL: baseURL,
-	}, nil
+	}
 }
+
+// func NewShortenerAPI(baseURL string, generator util.Generator, repository repositories.Repository, shortIDSize uint) (*ShortenerAPI, error) {
+// 	shortenerService, err := srv.NewShortenerService(generator, repository, shortIDSize)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return &ShortenerAPI{
+// 		Service: shortenerService,
+// 		BaseURL: baseURL,
+// 	}, nil
+// }
 
 func (api *ShortenerAPI) Post(w http.ResponseWriter, r *http.Request) {
 	url, err := io.ReadAll(r.Body)
@@ -37,7 +44,7 @@ func (api *ShortenerAPI) Post(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	serviceResult, err := api.Service.Add(models.NewServiceAddRecord(string(url)))
+	serviceResult, err := api.Service.Add(r.Context(), models.NewServiceAddRecord(string(url)))
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -49,7 +56,7 @@ func (api *ShortenerAPI) Post(w http.ResponseWriter, r *http.Request) {
 
 func (api *ShortenerAPI) Get(w http.ResponseWriter, r *http.Request) {
 	shortID := chi.URLParam(r, "shortID")
-	serviceResult, err := api.Service.Get(models.NewServiceGetRecord(shortID))
+	serviceResult, err := api.Service.Get(r.Context(), models.NewServiceGetRecord(shortID))
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -76,7 +83,7 @@ func (api *ShortenerAPI) JSONShorten(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	serviceResult, err := api.Service.Add(models.NewServiceAddRecord(inputJSON.URL))
+	serviceResult, err := api.Service.Add(r.Context(), models.NewServiceAddRecord(inputJSON.URL))
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -95,10 +102,25 @@ func (api *ShortenerAPI) JSONShorten(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func GetRoutesFunc(api *ShortenerAPI) func(r chi.Router) {
-	return func(r chi.Router) {
-		r.Get("/{shortID:[A-Za-z]+}", api.Get)
-		r.Post("/", api.Post)
-		r.Post("/api/shorten", api.JSONShorten)
-	}
+// func GetRoutesFunc(api *ShortenerAPI) func(r chi.Router) {
+// 	return func(r chi.Router) {
+// 		r.Get("/{shortID:[A-Za-z]+}", api.Get)
+// 		r.Post("/", api.Post)
+// 		r.Post("/api/shorten", api.JSONShorten)
+// 	}
+// }
+
+func (api *ShortenerAPI) Routes(logger logging.Logger) chi.Router {
+	router := chi.NewRouter()
+
+	router.Use(middleware.Recoverer)
+	router.Use(appmiddleware.NewLoggingMiddleware(logger))
+	router.Use(appmiddleware.GzipHandler)
+	router.Use(middleware.Compress(5, "text/html", "application/json"))
+
+	router.Get("/{shortID:[A-Za-z]+}", api.Get)
+	router.Post("/", api.Post)
+	router.Post("/api/shorten", api.JSONShorten)
+
+	return router
 }
