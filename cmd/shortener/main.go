@@ -16,6 +16,7 @@ import (
 	"github.com/Svirex/microurl/internal/pkg/config"
 	"github.com/Svirex/microurl/internal/pkg/repositories"
 	"github.com/Svirex/microurl/internal/pkg/server"
+	srv "github.com/Svirex/microurl/internal/pkg/services"
 	"github.com/Svirex/microurl/internal/services"
 	"github.com/Svirex/microurl/internal/storage"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -26,10 +27,6 @@ const shortURLLength uint = 8
 
 func main() {
 	cfg := config.Parse()
-
-	if cfg.PostgresDSN == "" {
-		panic("Need setup postgres DSN by DATABASE_DSN env variable or -d flag")
-	}
 
 	logger, err := logging.NewDefaultLogger()
 	if err != nil {
@@ -59,12 +56,19 @@ func main() {
 	logger.Info("Created shorten service...")
 	defer service.Shutdown()
 
-	db := sqlx.MustOpen("pgx", cfg.PostgresDSN)
-	logger.Info("Created DB connection...")
-	defer db.Close()
+	var dbCheckService srv.DBCheck
 
-	dbCheckService := services.NewDBCheckService(db)
-	logger.Info("Created DB check service...")
+	if cfg.PostgresDSN != "" {
+		db := sqlx.MustOpen("pgx", cfg.PostgresDSN)
+		logger.Info("Created DB connection...")
+		defer db.Close()
+
+		dbCheckService = services.NewDBCheckService(db)
+	} else {
+		dbCheckService = &srv.NoOpDBCheck{}
+	}
+
+	logger.Info("Created DB check service...", "type=", fmt.Sprintf("%T", dbCheckService))
 	defer dbCheckService.Shutdown()
 
 	api := apis.NewShortenerAPI(service, dbCheckService, cfg.BaseURL)

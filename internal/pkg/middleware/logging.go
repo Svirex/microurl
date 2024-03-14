@@ -17,9 +17,9 @@ type loggingResponseWriter struct {
 	responseData *responseData
 }
 
-func (writer *loggingResponseWriter) Write(data []byte) (int, error) {
-	size, err := writer.ResponseWriter.Write(data)
-	writer.responseData.size += size
+func (w *loggingResponseWriter) Write(data []byte) (int, error) {
+	size, err := w.ResponseWriter.Write(data)
+	w.responseData.size += size
 	return size, err
 }
 
