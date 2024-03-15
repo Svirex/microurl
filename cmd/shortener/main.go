@@ -42,8 +42,8 @@ func main() {
 		logger.Info("Try create DB connection...")
 		db = sqlx.MustConnect("pgx", cfg.PostgresDSN)
 		logger.Info("DB connection success...")
+		defer db.Close()
 	}
-	defer db.Close()
 
 	var repository repositories.URLRepository
 
