@@ -1,5 +1,7 @@
 package backup
 
+import "context"
+
 type Record struct {
 	UUID    string `json:"uuid"`
 	ShortID string `json:"short_url"`
@@ -7,11 +9,11 @@ type Record struct {
 }
 
 type BackupReader interface {
-	Read() (*Record, error)
+	Read(context.Context) (*Record, error)
 	Close() error
 }
 
 type BackupWriter interface {
-	Write(*Record) error
+	Write(context.Context, *Record) error
 	Close() error
 }

@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"errors"
 
 	"github.com/Svirex/microurl/internal/pkg/models"
@@ -16,31 +17,31 @@ var ErrUnableBackupRecord = errors.New("unable write record into backup")
 
 type ShortenerService struct {
 	Generator   util.Generator
-	Repository  repositories.Repository
+	Repository  repositories.URLRepository
 	ShortIDSize uint
 }
 
-func NewShortenerService(generator util.Generator, repository repositories.Repository, shortIDSize uint) (services.Shortener, error) {
+func NewShortenerService(generator util.Generator, repository repositories.URLRepository, shortIDSize uint) *ShortenerService {
 	return &ShortenerService{
 		Generator:   generator,
 		Repository:  repository,
 		ShortIDSize: shortIDSize,
-	}, nil
+	}
 }
 
 var _ services.Shortener = (*ShortenerService)(nil)
 
-func (s *ShortenerService) Add(d *models.ServiceAddRecord) (*models.ServiceAddResult, error) {
+func (s *ShortenerService) Add(ctx context.Context, d *models.ServiceAddRecord) (*models.ServiceAddResult, error) {
 	shortID := s.generateShortID()
-	err := s.Repository.Add(models.NewRepositoryAddRecord(shortID, d.URL))
+	res, err := s.Repository.Add(ctx, models.NewRepositoryAddRecord(shortID, d.URL))
 	if err != nil {
 		return nil, ErrUnableAddRecord
 	}
-	return models.NewServiceAddResult(shortID), nil
+	return models.NewServiceAddResult(res.ShortID), nil
 }
 
-func (s *ShortenerService) Get(d *models.ServiceGetRecord) (*models.ServiceGetResult, error) {
-	result, err := s.Repository.Get(models.NewRepositoryGetRecord(d.ShortID))
+func (s *ShortenerService) Get(ctx context.Context, d *models.ServiceGetRecord) (*models.ServiceGetResult, error) {
+	result, err := s.Repository.Get(ctx, models.NewRepositoryGetRecord(d.ShortID))
 	if errors.Is(err, repositories.ErrNotFound) {
 		return nil, ErrNotFound
 	} else if err != nil {
@@ -51,4 +52,24 @@ func (s *ShortenerService) Get(d *models.ServiceGetRecord) (*models.ServiceGetRe
 
 func (s *ShortenerService) generateShortID() string {
 	return s.Generator.RandString(s.ShortIDSize)
+}
+
+func (s *ShortenerService) Shutdown() error {
+	return nil
+}
+
+func (s *ShortenerService) Batch(ctx context.Context, batch *models.BatchRequest) (*models.BatchResponse, error) {
+	batchService := &models.BatchService{
+		Records: make([]models.BatchServiceRecord, len(batch.Records)),
+	}
+	for i := range batch.Records {
+		batchService.Records[i].CorrID = batch.Records[i].CorrID
+		batchService.Records[i].URL = batch.Records[i].URL
+		batchService.Records[i].ShortURL = s.generateShortID()
+	}
+	result, err := s.Repository.Batch(ctx, batchService)
+	if err != nil {
+		return nil, ErrUnableAddRecord
+	}
+	return result, nil
 }

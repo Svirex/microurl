@@ -12,6 +12,7 @@ type Config struct {
 	Addr            string `env:"SERVER_ADDRESS"`
 	BaseURL         string `env:"BASE_URL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	PostgresDSN     string `env:"DATABASE_DSN"`
 }
 
 func ParseEnv() *Config {
@@ -27,6 +28,7 @@ func ParseFlags() *Config {
 	flag.StringVar(&cfg.Addr, "a", "localhost:8080", "<host>:<port>")
 	flag.StringVar(&cfg.BaseURL, "b", "", "base URL")
 	flag.StringVar(&cfg.FileStoragePath, "f", "/tmp/short-url-db.json", "file for save records")
+	flag.StringVar(&cfg.PostgresDSN, "d", "", "postgres DSN")
 	flag.Parse()
 	return cfg
 }
@@ -66,6 +68,7 @@ func mergeConf(envCfg *Config, flagConfig *Config) *Config {
 		Addr:            envCfg.Addr,
 		BaseURL:         envCfg.BaseURL,
 		FileStoragePath: envCfg.FileStoragePath,
+		PostgresDSN:     envCfg.PostgresDSN,
 	}
 	if cfg.Addr == "" {
 		cfg.Addr = flagConfig.Addr
@@ -75,6 +78,9 @@ func mergeConf(envCfg *Config, flagConfig *Config) *Config {
 	}
 	if cfg.FileStoragePath == "" {
 		cfg.FileStoragePath = flagConfig.FileStoragePath
+	}
+	if cfg.PostgresDSN == "" {
+		cfg.PostgresDSN = flagConfig.PostgresDSN
 	}
 	return cfg
 }

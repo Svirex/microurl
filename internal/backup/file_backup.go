@@ -1,6 +1,7 @@
 package backup
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"os"
@@ -22,7 +23,7 @@ var _ backup.BackupReader = (*FileBackupReader)(nil)
 
 var _ backup.BackupWriter = (*FileBackupWriter)(nil)
 
-func (reader *FileBackupReader) Read() (*backup.Record, error) {
+func (reader *FileBackupReader) Read(ctx context.Context) (*backup.Record, error) {
 	if reader.reader.More() {
 		record := &backup.Record{}
 		err := reader.reader.Decode(record)
@@ -38,7 +39,7 @@ func (reader *FileBackupReader) Close() error {
 	return reader.file.Close()
 }
 
-func (writer *FileBackupWriter) Write(record *backup.Record) error {
+func (writer *FileBackupWriter) Write(ctx context.Context, record *backup.Record) error {
 	return writer.writer.Encode(record)
 }
 
