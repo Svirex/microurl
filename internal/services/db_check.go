@@ -24,5 +24,5 @@ func (c *DefaultDBCheck) Ping(ctx context.Context) error {
 }
 
 func (c *DefaultDBCheck) Shutdown() error {
-	return nil
+	return c.db.Close()
 }

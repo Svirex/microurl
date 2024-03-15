@@ -37,18 +37,32 @@ func main() {
 	generator := generators.NewSimpleGenerator(time.Now().UnixNano())
 	logger.Info("Created generator...")
 
+	var db *sqlx.DB
+	if cfg.PostgresDSN != "" {
+		logger.Info("Try create DB connection...")
+		db = sqlx.MustConnect("pgx", cfg.PostgresDSN)
+		logger.Info("DB connection success...")
+	}
+	defer db.Close()
+
 	var repository repositories.URLRepository
 
 	serverCtx, serverCancel := context.WithCancel(context.Background())
 
-	if cfg.FileStoragePath == "" {
-		repository = storage.NewMapRepository()
-	} else {
+	if cfg.PostgresDSN != "" {
+		repository, err = storage.NewPostgresRepository(serverCtx, db)
+		if err != nil {
+			panic(err)
+		}
+	} else if cfg.FileStoragePath != "" {
 		repository, err = storage.NewFileRepository(serverCtx, cfg.FileStoragePath)
 		if err != nil {
 			panic(err)
 		}
+	} else {
+		repository = storage.NewMapRepository()
 	}
+
 	logger.Info("Created repository...", "type=", fmt.Sprintf("%T", repository))
 	defer repository.Shutdown()
 
@@ -59,10 +73,6 @@ func main() {
 	var dbCheckService srv.DBCheck
 
 	if cfg.PostgresDSN != "" {
-		db := sqlx.MustOpen("pgx", cfg.PostgresDSN)
-		logger.Info("Created DB connection...")
-		defer db.Close()
-
 		dbCheckService = services.NewDBCheckService(db)
 	} else {
 		dbCheckService = &srv.NoOpDBCheck{}
