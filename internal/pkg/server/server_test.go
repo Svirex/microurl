@@ -2,7 +2,9 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,23 +16,52 @@ import (
 
 	"github.com/Svirex/microurl/internal/apis"
 	"github.com/Svirex/microurl/internal/generators"
+	"github.com/Svirex/microurl/internal/pkg/logging"
 	"github.com/Svirex/microurl/internal/pkg/models"
 	"github.com/Svirex/microurl/internal/pkg/repositories"
+	srv "github.com/Svirex/microurl/internal/pkg/services"
+	"github.com/Svirex/microurl/internal/services"
 	"github.com/Svirex/microurl/internal/storage"
-	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/require"
 )
 
+type FakeLogger struct{}
+
+var _ logging.Logger = (*FakeLogger)(nil)
+
+func (*FakeLogger) Info(params ...any)  {}
+func (*FakeLogger) Error(params ...any) {}
+func (*FakeLogger) Shutdown() error     { return nil }
+
+type MockDBCheck struct {
+	err error
+}
+
+var _ srv.DBCheck = (*MockDBCheck)(nil)
+
+func (m *MockDBCheck) Ping(ctx context.Context) error {
+	return m.err
+}
+
+func (m *MockDBCheck) Shutdown() error {
+	return nil
+}
+
+func NewMockDBCheck(err error) *MockDBCheck {
+	return &MockDBCheck{
+		err: err,
+	}
+}
+
 func TestRouterPost(t *testing.T) {
-	rep, err := storage.NewMapRepository("/tmp/short-url-db.json")
-	require.NoError(t, err)
-	api, err := apis.NewShortenerAPI("http://svirex.ru", generators.NewSimpleGenerator(255), rep, 8)
-	require.NoError(t, err)
+	rep := storage.NewMapRepository()
+	require.NotNil(t, rep)
+	service := services.NewShortenerService(generators.NewSimpleGenerator(255), rep, 8)
+	require.NotNil(t, service)
+	api := apis.NewShortenerAPI(service, NewMockDBCheck(nil), "http://svirex.ru")
+	require.NotNil(t, api)
 
-	router := chi.NewRouter()
-	router.Route("/", apis.GetRoutesFunc(api))
-
-	testServer := httptest.NewServer(router)
+	testServer := httptest.NewServer(api.Routes(&FakeLogger{}))
 	defer testServer.Close()
 
 	u, _ := url.Parse(testServer.URL)
@@ -69,24 +100,27 @@ func TestRouterPost(t *testing.T) {
 
 type MockRepository struct{}
 
-var _ repositories.Repository = (*MockRepository)(nil)
+var _ repositories.URLRepository = (*MockRepository)(nil)
 
-func (m *MockRepository) Add(*models.RepositoryAddRecord) error {
-	return fmt.Errorf("couldn't add")
+func (m *MockRepository) Add(context.Context, *models.RepositoryAddRecord) (*models.RepositoryGetRecord, error) {
+	return nil, fmt.Errorf("couldn't add")
 }
 
-func (m *MockRepository) Get(*models.RepositoryGetRecord) (*models.RepositoryGetResult, error) {
+func (m *MockRepository) Get(context.Context, *models.RepositoryGetRecord) (*models.RepositoryGetResult, error) {
 	return models.NewRepositoryGetResult("res"), nil
 }
 
+func (m *MockRepository) Shutdown() error {
+	return nil
+}
+
 func TestRouterPostWithMockRepo(t *testing.T) {
-	api, err := apis.NewShortenerAPI("http://svirex.ru", generators.NewSimpleGenerator(255), &MockRepository{}, 8)
-	require.NoError(t, err)
+	service := services.NewShortenerService(generators.NewSimpleGenerator(255), &MockRepository{}, 8)
+	require.NotNil(t, service)
+	api := apis.NewShortenerAPI(service, NewMockDBCheck(nil), "http://svirex.ru")
+	require.NotNil(t, api)
 
-	router := chi.NewRouter()
-	router.Route("/", apis.GetRoutesFunc(api))
-
-	testServer := httptest.NewServer(router)
+	testServer := httptest.NewServer(api.Routes(&FakeLogger{}))
 	defer testServer.Close()
 
 	{
@@ -104,15 +138,14 @@ func TestRouterPostWithMockRepo(t *testing.T) {
 }
 
 func TestServerGet(t *testing.T) {
-	rep, err := storage.NewMapRepository("/tmp/short-url-db.json")
-	require.NoError(t, err)
-	api, err := apis.NewShortenerAPI("http://svirex.ru", generators.NewSimpleGenerator(255), rep, 8)
-	require.NoError(t, err)
+	rep := storage.NewMapRepository()
+	require.NotNil(t, rep)
+	service := services.NewShortenerService(generators.NewSimpleGenerator(255), rep, 8)
+	require.NotNil(t, service)
+	api := apis.NewShortenerAPI(service, NewMockDBCheck(nil), "http://svirex.ru")
+	require.NotNil(t, api)
 
-	router := chi.NewRouter()
-	router.Route("/", apis.GetRoutesFunc(api))
-
-	testServer := httptest.NewServer(router)
+	testServer := httptest.NewServer(api.Routes(&FakeLogger{}))
 	defer testServer.Close()
 
 	{
@@ -184,15 +217,14 @@ func TestServerGet(t *testing.T) {
 }
 
 func TestServerJSONShorten(t *testing.T) {
-	rep, err := storage.NewMapRepository("/tmp/short-url-db.json")
-	require.NoError(t, err)
-	api, err := apis.NewShortenerAPI("http://svirex.ru", generators.NewSimpleGenerator(255), rep, 8)
-	require.NoError(t, err)
+	rep := storage.NewMapRepository()
+	require.NotNil(t, rep)
+	service := services.NewShortenerService(generators.NewSimpleGenerator(255), rep, 8)
+	require.NotNil(t, service)
+	api := apis.NewShortenerAPI(service, NewMockDBCheck(nil), "http://svirex.ru")
+	require.NotNil(t, api)
 
-	router := chi.NewRouter()
-	router.Route("/", apis.GetRoutesFunc(api))
-
-	testServer := httptest.NewServer(router)
+	testServer := httptest.NewServer(api.Routes(&FakeLogger{}))
 	defer testServer.Close()
 
 	apiURL := testServer.URL + "/api/shorten"
@@ -263,4 +295,50 @@ func TestServerJSONShorten(t *testing.T) {
 		require.True(t, reg.MatchString(resultJSON.ShortURL))
 	}
 
+}
+
+func TestServerPingOk(t *testing.T) {
+	rep := storage.NewMapRepository()
+	require.NotNil(t, rep)
+	service := services.NewShortenerService(generators.NewSimpleGenerator(255), rep, 8)
+	require.NotNil(t, service)
+	api := apis.NewShortenerAPI(service, NewMockDBCheck(nil), "http://svirex.ru")
+	require.NotNil(t, api)
+
+	testServer := httptest.NewServer(api.Routes(&FakeLogger{}))
+	defer testServer.Close()
+
+	{
+		req, err := http.NewRequest(http.MethodGet, testServer.URL+"/ping", nil)
+		require.NoError(t, err)
+
+		resp, err := testServer.Client().Do(req)
+		require.NoError(t, err)
+		resp.Body.Close()
+
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+	}
+}
+
+func TestServerPingFail(t *testing.T) {
+	rep := storage.NewMapRepository()
+	require.NotNil(t, rep)
+	service := services.NewShortenerService(generators.NewSimpleGenerator(255), rep, 8)
+	require.NotNil(t, service)
+	api := apis.NewShortenerAPI(service, NewMockDBCheck(errors.New("OOPS!!!")), "http://svirex.ru")
+	require.NotNil(t, api)
+
+	testServer := httptest.NewServer(api.Routes(&FakeLogger{}))
+	defer testServer.Close()
+
+	{
+		req, err := http.NewRequest(http.MethodGet, testServer.URL+"/ping", nil)
+		require.NoError(t, err)
+
+		resp, err := testServer.Client().Do(req)
+		require.NoError(t, err)
+		resp.Body.Close()
+
+		require.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+	}
 }
