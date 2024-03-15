@@ -43,13 +43,13 @@ func (r *PostgresRepository) Add(ctx context.Context, d *models.RepositoryAddRec
 									SET short_id=records.short_id
 									 RETURNING short_id;
 	`, d.URL, d.ShortID)
-	var short_id string
-	err := row.Scan(&short_id)
+	var shortID string
+	err := row.Scan(&shortID)
 	if err != nil {
 		fmt.Println(err)
 		return nil, errors.New("couldnt insert record")
 	}
-	return models.NewRepositoryGetRecord(short_id), nil
+	return models.NewRepositoryGetRecord(shortID), nil
 }
 
 func (r *PostgresRepository) Get(ctx context.Context, d *models.RepositoryGetRecord) (*models.RepositoryGetResult, error) {
