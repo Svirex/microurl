@@ -42,3 +42,17 @@ func (m *MapRepository) Get(ctx context.Context, d *models.RepositoryGetRecord) 
 func (m *MapRepository) Shutdown() error {
 	return nil
 }
+
+func (m *MapRepository) Batch(_ context.Context, batch *models.BatchService) (*models.BatchResponse, error) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	response := &models.BatchResponse{
+		Records: make([]models.BatchResponseRecord, len(batch.Records)),
+	}
+	for i := range batch.Records {
+		m.data[batch.Records[i].ShortURL] = batch.Records[i].URL
+		response.Records[i].CorrID = batch.Records[i].CorrID
+		response.Records[i].ShortURL = batch.Records[i].ShortURL
+	}
+	return response, nil
+}

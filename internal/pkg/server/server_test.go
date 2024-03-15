@@ -114,6 +114,10 @@ func (m *MockRepository) Shutdown() error {
 	return nil
 }
 
+func (m *MockRepository) Batch(context.Context, *models.BatchService) (*models.BatchResponse, error) {
+	return nil, fmt.Errorf("couldn't add")
+}
+
 func TestRouterPostWithMockRepo(t *testing.T) {
 	service := services.NewShortenerService(generators.NewSimpleGenerator(255), &MockRepository{}, 8)
 	require.NotNil(t, service)
@@ -340,5 +344,48 @@ func TestServerPingFail(t *testing.T) {
 		resp.Body.Close()
 
 		require.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+	}
+}
+
+func TestBatch(t *testing.T) {
+	rep := storage.NewMapRepository()
+	require.NotNil(t, rep)
+	service := services.NewShortenerService(generators.NewSimpleGenerator(255), rep, 8)
+	require.NotNil(t, service)
+	api := apis.NewShortenerAPI(service, NewMockDBCheck(errors.New("OOPS!!!")), "http://svirex.ru")
+	require.NotNil(t, api)
+
+	testServer := httptest.NewServer(api.Routes(&FakeLogger{}))
+	defer testServer.Close()
+
+	{
+		body := []models.BatchRequestRecord{
+			{
+				CorrID: "1",
+				URL:    "https://ya.ru",
+			},
+			{
+				CorrID: "2",
+				URL:    "https://ya.ru",
+			},
+		}
+		bodyBytes, err := json.Marshal(body)
+		require.NoError(t, err)
+
+		req, err := http.NewRequest(http.MethodPost, testServer.URL+"/api/shorten/batch", bytes.NewReader(bodyBytes))
+		require.NoError(t, err)
+
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := testServer.Client().Do(req)
+		require.NoError(t, err)
+
+		respBody, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		resp.Body.Close()
+
+		require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+		require.NotEmpty(t, respBody)
 	}
 }

@@ -57,3 +57,18 @@ func (s *ShortenerService) generateShortID() string {
 func (s *ShortenerService) Shutdown() error {
 	return nil
 }
+
+func (s *ShortenerService) Batch(ctx context.Context, batch *models.BatchRequest) (*models.BatchResponse, error) {
+	batchService := &models.BatchService{
+		Records: make([]models.BatchServiceRecord, len(batch.Records)),
+	}
+	for i := range batch.Records {
+		batchService.Records[i].CorrID = batch.Records[i].CorrID
+		batchService.Records[i].ShortURL = s.generateShortID()
+	}
+	result, err := s.Repository.Batch(ctx, batchService)
+	if err != nil {
+		return nil, ErrUnableAddRecord
+	}
+	return result, nil
+}

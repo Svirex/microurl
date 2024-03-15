@@ -13,5 +13,6 @@ var ErrSomtheingWrong = errors.New("unknown error")
 type URLRepository interface {
 	Add(context.Context, *models.RepositoryAddRecord) (*models.RepositoryGetRecord, error)
 	Get(context.Context, *models.RepositoryGetRecord) (*models.RepositoryGetResult, error)
+	Batch(context.Context, *models.BatchService) (*models.BatchResponse, error)
 	Shutdown() error
 }

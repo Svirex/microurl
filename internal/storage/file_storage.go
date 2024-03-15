@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
 
 	bck "github.com/Svirex/microurl/internal/backup"
 	"github.com/Svirex/microurl/internal/pkg/backup"
@@ -20,6 +21,7 @@ var _ repositories.URLRepository = (*FileRepository)(nil)
 type FileRepository struct {
 	*MapRepository
 	backupWriter backup.BackupWriter
+	mutex        sync.Mutex
 }
 
 func NewFileRepository(ctx context.Context, filename string) (*FileRepository, error) {
@@ -103,5 +105,48 @@ func (m *FileRepository) saveToFile(ctx context.Context, d *models.RepositoryAdd
 		ShortID: d.ShortID,
 		URL:     d.URL,
 	}
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	return m.backupWriter.Write(ctx, record)
+}
+
+func (m *FileRepository) saveBatchToFile(ctx context.Context, batch *models.BatchService) error {
+	if m.backupWriter == nil {
+		return nil
+	}
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	for i := range batch.Records {
+		record := &backup.Record{
+			UUID:    uuid.New().String(),
+			ShortID: batch.Records[i].ShortURL,
+			URL:     batch.Records[i].URL,
+		}
+		err := m.backupWriter.Write(ctx, record)
+		if err != nil {
+			return fmt.Errorf("error save url to file: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (m *FileRepository) Batch(ctx context.Context, batch *models.BatchService) (*models.BatchResponse, error) {
+	_, err := m.MapRepository.Batch(ctx, batch)
+	if err != nil {
+		return nil, fmt.Errorf("save url to mem storage: %w", err)
+	}
+
+	err = m.saveBatchToFile(ctx, batch)
+	if err != nil {
+		return nil, fmt.Errorf("save url to file: %w", err)
+	}
+	response := &models.BatchResponse{
+		Records: make([]models.BatchResponseRecord, len(batch.Records)),
+	}
+	for i := range batch.Records {
+		response.Records[i].CorrID = batch.Records[i].CorrID
+		response.Records[i].ShortURL = batch.Records[i].ShortURL
+	}
+	return response, nil
 }

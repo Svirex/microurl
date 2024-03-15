@@ -102,6 +102,48 @@ func (api *ShortenerAPI) Ping(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func (api *ShortenerAPI) Batch(w http.ResponseWriter, r *http.Request) {
+	contentType := r.Header.Get("Content-Type")
+	if contentType != "application/json" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	body, err := io.ReadAll(r.Body)
+	r.Body.Close()
+	if err != nil || len(body) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	var batch models.BatchRequest
+	err = json.Unmarshal(body, &batch.Records)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	var serviceResult models.BatchResponse
+	if len(batch.Records) != 0 {
+		serviceResult, err := api.shortenerService.Batch(r.Context(), &batch)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		for i := range serviceResult.Records {
+			serviceResult.Records[i].ShortURL = fmt.Sprintf("%s/%s", api.BaseURL, serviceResult.Records[i].ShortURL)
+		}
+	} else {
+		serviceResult.Records = make([]models.BatchResponseRecord, 0)
+	}
+	body, err = json.Marshal(serviceResult.Records)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	w.Write(body)
+
+}
+
 func (api *ShortenerAPI) Routes(logger logging.Logger) chi.Router {
 	router := chi.NewRouter()
 
@@ -114,6 +156,7 @@ func (api *ShortenerAPI) Routes(logger logging.Logger) chi.Router {
 	router.Post("/", api.Post)
 	router.Post("/api/shorten", api.JSONShorten)
 	router.Get("/ping", api.Ping)
+	router.Post("/api/shorten/batch", api.Batch)
 
 	return router
 }

@@ -41,8 +41,7 @@ func (r *PostgresRepository) Add(ctx context.Context, d *models.RepositoryAddRec
 									VALUES ($1, $2) 
 									ON CONFLICT (url) DO UPDATE
 									SET short_id=records.short_id
-									 RETURNING short_id;
-	`, d.URL, d.ShortID)
+									 RETURNING short_id;`, d.URL, d.ShortID)
 	var shortID string
 	err := row.Scan(&shortID)
 	if err != nil {
@@ -67,4 +66,38 @@ func (r *PostgresRepository) Get(ctx context.Context, d *models.RepositoryGetRec
 
 func (r *PostgresRepository) Shutdown() error {
 	return nil
+}
+
+func (r *PostgresRepository) Batch(ctx context.Context, batch *models.BatchService) (*models.BatchResponse, error) {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("coulndt add batch. err: %w", err)
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.PrepareContext(ctx, `INSERT INTO records (url, short_id) 
+											VALUES ($1, $2) 
+											ON CONFLICT (url) DO UPDATE
+												SET short_id=records.short_id
+									 		RETURNING short_id;`)
+	if err != nil {
+		return nil, fmt.Errorf("coulndt add batch. err: %w", err)
+	}
+	response := &models.BatchResponse{
+		Records: make([]models.BatchResponseRecord, len(batch.Records)),
+	}
+	for i := range batch.Records {
+		row := stmt.QueryRowContext(ctx, batch.Records[i].URL, batch.Records[i].ShortURL)
+		err := row.Scan(&response.Records[i].ShortURL)
+		if err != nil {
+			return nil, fmt.Errorf("coulndt add batch. err: %w", err)
+		}
+		response.Records[i].CorrID = batch.Records[i].CorrID
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return nil, fmt.Errorf("coulndt add batch. err: %w", err)
+	}
+	return response, nil
 }
