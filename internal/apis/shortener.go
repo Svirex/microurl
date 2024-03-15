@@ -120,9 +120,9 @@ func (api *ShortenerAPI) Batch(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	var serviceResult models.BatchResponse
+	var serviceResult *models.BatchResponse
 	if len(batch.Records) != 0 {
-		serviceResult, err := api.shortenerService.Batch(r.Context(), &batch)
+		serviceResult, err = api.shortenerService.Batch(r.Context(), &batch)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
