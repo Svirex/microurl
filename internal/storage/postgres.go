@@ -94,7 +94,6 @@ func (r *PostgresRepository) Batch(ctx context.Context, batch *models.BatchServi
 		}
 		response.Records[i].CorrID = batch.Records[i].CorrID
 	}
-
 	err = tx.Commit()
 	if err != nil {
 		return nil, fmt.Errorf("coulndt add batch. err: %w", err)

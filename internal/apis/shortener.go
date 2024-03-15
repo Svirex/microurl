@@ -120,7 +120,9 @@ func (api *ShortenerAPI) Batch(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	var serviceResult *models.BatchResponse
+	serviceResult := &models.BatchResponse{
+		Records: make([]models.BatchResponseRecord, 0),
+	}
 	if len(batch.Records) != 0 {
 		serviceResult, err = api.shortenerService.Batch(r.Context(), &batch)
 		if err != nil {
@@ -130,8 +132,6 @@ func (api *ShortenerAPI) Batch(w http.ResponseWriter, r *http.Request) {
 		for i := range serviceResult.Records {
 			serviceResult.Records[i].ShortURL = fmt.Sprintf("%s/%s", api.BaseURL, serviceResult.Records[i].ShortURL)
 		}
-	} else {
-		serviceResult.Records = make([]models.BatchResponseRecord, 0)
 	}
 	body, err = json.Marshal(serviceResult.Records)
 	if err != nil {

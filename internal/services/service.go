@@ -64,6 +64,7 @@ func (s *ShortenerService) Batch(ctx context.Context, batch *models.BatchRequest
 	}
 	for i := range batch.Records {
 		batchService.Records[i].CorrID = batch.Records[i].CorrID
+		batchService.Records[i].URL = batch.Records[i].URL
 		batchService.Records[i].ShortURL = s.generateShortID()
 	}
 	result, err := s.Repository.Batch(ctx, batchService)
