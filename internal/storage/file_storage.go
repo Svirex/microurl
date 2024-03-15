@@ -47,17 +47,17 @@ func NewFileRepository(ctx context.Context, filename string) (*FileRepository, e
 	return repository, nil
 }
 
-func (m *FileRepository) Add(ctx context.Context, d *models.RepositoryAddRecord) error {
-	err := m.MapRepository.Add(ctx, d)
+func (m *FileRepository) Add(ctx context.Context, d *models.RepositoryAddRecord) (*models.RepositoryGetRecord, error) {
+	_, err := m.MapRepository.Add(ctx, d)
 	if err != nil {
-		return fmt.Errorf("save url to mem storage: %w", err)
+		return nil, fmt.Errorf("save url to mem storage: %w", err)
 	}
 
 	err = m.saveToFile(ctx, d)
 	if err != nil {
-		return fmt.Errorf("save url to file: %w", err)
+		return nil, fmt.Errorf("save url to file: %w", err)
 	}
-	return nil
+	return models.NewRepositoryGetRecord(d.ShortID), nil
 }
 
 func (m *FileRepository) Get(ctx context.Context, d *models.RepositoryGetRecord) (*models.RepositoryGetResult, error) {

@@ -102,8 +102,8 @@ type MockRepository struct{}
 
 var _ repositories.URLRepository = (*MockRepository)(nil)
 
-func (m *MockRepository) Add(context.Context, *models.RepositoryAddRecord) error {
-	return fmt.Errorf("couldn't add")
+func (m *MockRepository) Add(context.Context, *models.RepositoryAddRecord) (*models.RepositoryGetRecord, error) {
+	return nil, fmt.Errorf("couldn't add")
 }
 
 func (m *MockRepository) Get(context.Context, *models.RepositoryGetRecord) (*models.RepositoryGetResult, error) {

@@ -33,11 +33,11 @@ var _ services.Shortener = (*ShortenerService)(nil)
 
 func (s *ShortenerService) Add(ctx context.Context, d *models.ServiceAddRecord) (*models.ServiceAddResult, error) {
 	shortID := s.generateShortID()
-	err := s.Repository.Add(ctx, models.NewRepositoryAddRecord(shortID, d.URL))
+	res, err := s.Repository.Add(ctx, models.NewRepositoryAddRecord(shortID, d.URL))
 	if err != nil {
 		return nil, ErrUnableAddRecord
 	}
-	return models.NewServiceAddResult(shortID), nil
+	return models.NewServiceAddResult(res.ShortID), nil
 }
 
 func (s *ShortenerService) Get(ctx context.Context, d *models.ServiceGetRecord) (*models.ServiceGetResult, error) {

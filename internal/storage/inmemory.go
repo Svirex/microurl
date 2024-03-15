@@ -22,11 +22,11 @@ func NewMapRepository() *MapRepository {
 	}
 }
 
-func (m *MapRepository) Add(ctx context.Context, d *models.RepositoryAddRecord) error {
+func (m *MapRepository) Add(ctx context.Context, d *models.RepositoryAddRecord) (*models.RepositoryGetRecord, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	m.data[d.ShortID] = d.URL
-	return nil
+	return models.NewRepositoryGetRecord(d.ShortID), nil
 }
 
 func (m *MapRepository) Get(ctx context.Context, d *models.RepositoryGetRecord) (*models.RepositoryGetResult, error) {
