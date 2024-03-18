@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/Svirex/microurl/internal/pkg/models"
 	"github.com/Svirex/microurl/internal/pkg/repositories"
@@ -34,8 +35,8 @@ var _ services.Shortener = (*ShortenerService)(nil)
 func (s *ShortenerService) Add(ctx context.Context, d *models.ServiceAddRecord) (*models.ServiceAddResult, error) {
 	shortID := s.generateShortID()
 	res, err := s.Repository.Add(ctx, models.NewRepositoryAddRecord(shortID, d.URL))
-	if err != nil {
-		return nil, ErrUnableAddRecord
+	if errors.Is(err, repositories.ErrAlreadyExists) {
+		return models.NewServiceAddResult(res.ShortID), fmt.Errorf("%w", err)
 	}
 	return models.NewServiceAddResult(res.ShortID), nil
 }

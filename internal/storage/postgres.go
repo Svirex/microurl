@@ -8,6 +8,8 @@ import (
 
 	"github.com/Svirex/microurl/internal/pkg/models"
 	"github.com/Svirex/microurl/internal/pkg/repositories"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -37,18 +39,21 @@ func NewPostgresRepository(ctx context.Context, db *sqlx.DB) (*PostgresRepositor
 var _ repositories.URLRepository = (*PostgresRepository)(nil)
 
 func (r *PostgresRepository) Add(ctx context.Context, d *models.RepositoryAddRecord) (*models.RepositoryGetRecord, error) {
-	row := r.db.QueryRowContext(ctx, `INSERT INTO records (url, short_id) 
-									VALUES ($1, $2) 
-									ON CONFLICT (url) DO UPDATE
-									SET short_id=records.short_id
-									 RETURNING short_id;`, d.URL, d.ShortID)
-	var shortID string
-	err := row.Scan(&shortID)
-	if err != nil {
-		fmt.Println(err)
-		return nil, errors.New("couldnt insert record")
+	_, err := r.db.ExecContext(ctx, `INSERT INTO records (url, short_id) 
+										VALUES ($1, $2);`, d.URL, d.ShortID)
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
+		row := r.db.QueryRowContext(ctx, "SELECT short_id FROM records WHERE url=$1;", d.URL)
+		var shortID string
+		err = row.Scan(&shortID)
+		if err != nil {
+			return nil, fmt.Errorf("%w", err)
+		}
+		return models.NewRepositoryGetRecord(shortID), fmt.Errorf("%w", repositories.ErrAlreadyExists)
+	} else if err != nil {
+		return nil, fmt.Errorf("%w", err)
 	}
-	return models.NewRepositoryGetRecord(shortID), nil
+	return models.NewRepositoryGetRecord(d.ShortID), nil
 }
 
 func (r *PostgresRepository) Get(ctx context.Context, d *models.RepositoryGetRecord) (*models.RepositoryGetResult, error) {

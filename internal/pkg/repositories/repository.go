@@ -9,6 +9,7 @@ import (
 
 var ErrNotFound = errors.New("not found record")
 var ErrSomtheingWrong = errors.New("unknown error")
+var ErrAlreadyExists = errors.New("short id already exists")
 
 type URLRepository interface {
 	Add(context.Context, *models.RepositoryAddRecord) (*models.RepositoryGetRecord, error)
