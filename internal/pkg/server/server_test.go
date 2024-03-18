@@ -284,7 +284,7 @@ func TestServerJSONShorten(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, http.StatusCreated, resp.StatusCode)
-		require.Equal(t, resp.Header.Get("Content-Type"), "application/json")
+		require.Equal(t, "application/json", resp.Header.Get("Content-Type"))
 
 		body, err = io.ReadAll(resp.Body)
 		resp.Body.Close()

@@ -81,11 +81,13 @@ func (api *ShortenerAPI) JSONShorten(w http.ResponseWriter, r *http.Request) {
 	}
 	serviceResult, err := api.shortenerService.Add(r.Context(), models.NewServiceAddRecord(inputJSON.URL))
 	if errors.Is(err, repositories.ErrAlreadyExists) {
+		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(http.StatusConflict)
 	} else if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	} else {
+		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 	}
 	result := &models.ResultJSON{
@@ -96,7 +98,6 @@ func (api *ShortenerAPI) JSONShorten(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	w.Header().Add("Content-Type", "application/json")
 	w.Write(body)
 
 }

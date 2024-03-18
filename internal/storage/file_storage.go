@@ -50,8 +50,10 @@ func NewFileRepository(ctx context.Context, filename string) (*FileRepository, e
 }
 
 func (m *FileRepository) Add(ctx context.Context, d *models.RepositoryAddRecord) (*models.RepositoryGetRecord, error) {
-	_, err := m.MapRepository.Add(ctx, d)
-	if err != nil {
+	res, err := m.MapRepository.Add(ctx, d)
+	if errors.Is(err, repositories.ErrAlreadyExists) {
+		return res, fmt.Errorf("%w", err)
+	} else if err != nil {
 		return nil, fmt.Errorf("save url to mem storage: %w", err)
 	}
 
@@ -59,17 +61,11 @@ func (m *FileRepository) Add(ctx context.Context, d *models.RepositoryAddRecord)
 	if err != nil {
 		return nil, fmt.Errorf("save url to file: %w", err)
 	}
-	return models.NewRepositoryGetRecord(d.ShortID), nil
+	return res, nil
 }
 
 func (m *FileRepository) Get(ctx context.Context, d *models.RepositoryGetRecord) (*models.RepositoryGetResult, error) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	u, ok := m.data[d.ShortID]
-	if !ok {
-		return nil, fmt.Errorf("not found url for %s", d.ShortID)
-	}
-	return models.NewRepositoryGetResult(u), nil
+	return m.MapRepository.Get(ctx, d)
 }
 
 func (m *FileRepository) Shutdown() error {
