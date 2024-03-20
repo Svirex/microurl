@@ -2,7 +2,9 @@ package config
 
 import (
 	"flag"
-	"log"
+	"fmt"
+	"os"
+	"path"
 	"strings"
 
 	"github.com/caarlos0/env/v10"
@@ -13,32 +15,44 @@ type Config struct {
 	BaseURL         string `env:"BASE_URL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	PostgresDSN     string `env:"DATABASE_DSN"`
+	MigrationsPath  string `env:"MIGRATIONS_PATH"`
 }
 
-func ParseEnv() *Config {
+func ParseEnv() (*Config, error) {
 	cfg := &Config{}
 	if err := env.Parse(cfg); err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("parse enviroment variables: %w", err)
 	}
-	return cfg
+	return cfg, nil
 }
 
-func ParseFlags() *Config {
+func ParseFlags() (*Config, error) {
 	cfg := &Config{}
+	currentDir, err := os.Getwd()
+	if err != nil {
+		return nil, fmt.Errorf("getwd: %w", err)
+	}
 	flag.StringVar(&cfg.Addr, "a", "localhost:8080", "<host>:<port>")
 	flag.StringVar(&cfg.BaseURL, "b", "", "base URL")
 	flag.StringVar(&cfg.FileStoragePath, "f", "/tmp/short-url-db.json", "file for save records")
 	flag.StringVar(&cfg.PostgresDSN, "d", "", "postgres DSN")
+	flag.StringVar(&cfg.MigrationsPath, "m", path.Join(strings.Replace(currentDir, "cmd/shortener", "", 1), "migrations"), "path to db migrations")
 	flag.Parse()
-	return cfg
+	return cfg, nil
 }
 
-func Parse() *Config {
-	envCfg := ParseEnv()
-	flagConfig := ParseFlags()
+func Parse() (*Config, error) {
+	envCfg, err := ParseEnv()
+	if err != nil {
+		return nil, fmt.Errorf("parse error: %w", err)
+	}
+	flagConfig, err := ParseFlags()
+	if err != nil {
+		return nil, fmt.Errorf("parse error: %w", err)
+	}
 	cfg := mergeConf(envCfg, flagConfig)
 	prepareConfig(cfg)
-	return cfg
+	return cfg, nil
 }
 
 func prepareAddr(addr string) string {
@@ -69,6 +83,7 @@ func mergeConf(envCfg *Config, flagConfig *Config) *Config {
 		BaseURL:         envCfg.BaseURL,
 		FileStoragePath: envCfg.FileStoragePath,
 		PostgresDSN:     envCfg.PostgresDSN,
+		MigrationsPath:  envCfg.MigrationsPath,
 	}
 	if cfg.Addr == "" {
 		cfg.Addr = flagConfig.Addr
@@ -81,6 +96,9 @@ func mergeConf(envCfg *Config, flagConfig *Config) *Config {
 	}
 	if cfg.PostgresDSN == "" {
 		cfg.PostgresDSN = flagConfig.PostgresDSN
+	}
+	if cfg.MigrationsPath == "" {
+		cfg.MigrationsPath = flagConfig.MigrationsPath
 	}
 	return cfg
 }

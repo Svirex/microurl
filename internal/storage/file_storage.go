@@ -52,7 +52,7 @@ func NewFileRepository(ctx context.Context, filename string) (*FileRepository, e
 func (m *FileRepository) Add(ctx context.Context, d *models.RepositoryAddRecord) (*models.RepositoryGetRecord, error) {
 	res, err := m.MapRepository.Add(ctx, d)
 	if errors.Is(err, repositories.ErrAlreadyExists) {
-		return res, fmt.Errorf("%w", err)
+		return res, fmt.Errorf("short_id for url in MapRepository already exist: %w", err)
 	} else if err != nil {
 		return nil, fmt.Errorf("save url to mem storage: %w", err)
 	}

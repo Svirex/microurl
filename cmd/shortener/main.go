@@ -26,7 +26,10 @@ import (
 const shortURLLength uint = 8
 
 func main() {
-	cfg := config.Parse()
+	cfg, err := config.Parse()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	logger, err := logging.NewDefaultLogger()
 	if err != nil {
@@ -50,7 +53,7 @@ func main() {
 	serverCtx, serverCancel := context.WithCancel(context.Background())
 
 	if cfg.PostgresDSN != "" {
-		repository, err = storage.NewPostgresRepository(serverCtx, db)
+		repository, err = storage.NewPostgresRepository(serverCtx, db, cfg.MigrationsPath)
 		if err != nil {
 			panic(err)
 		}

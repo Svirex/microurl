@@ -35,11 +35,10 @@ var _ services.Shortener = (*ShortenerService)(nil)
 func (s *ShortenerService) Add(ctx context.Context, d *models.ServiceAddRecord) (*models.ServiceAddResult, error) {
 	shortID := s.generateShortID()
 	res, err := s.Repository.Add(ctx, models.NewRepositoryAddRecord(shortID, d.URL))
-	fmt.Println("SERVICE", res, err)
 	if errors.Is(err, repositories.ErrAlreadyExists) {
-		return models.NewServiceAddResult(res.ShortID), fmt.Errorf("%w", err)
+		return models.NewServiceAddResult(res.ShortID), fmt.Errorf("short_id for url already exist: %w", err)
 	} else if err != nil {
-		return nil, fmt.Errorf("%w", err)
+		return nil, fmt.Errorf("repository add: %w", err)
 	}
 	return models.NewServiceAddResult(res.ShortID), nil
 }

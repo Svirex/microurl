@@ -8,6 +8,9 @@ import (
 
 	"github.com/Svirex/microurl/internal/pkg/models"
 	"github.com/Svirex/microurl/internal/pkg/repositories"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jmoiron/sqlx"
@@ -17,19 +20,20 @@ type PostgresRepository struct {
 	db *sqlx.DB
 }
 
-var schema = `
-CREATE TABLE IF NOT EXISTS
-public.records (
-	id SERIAL PRIMARY KEY,
-	url TEXT UNIQUE NOT NULL,
-	short_id VARCHAR(32) NOT NULL
-)
-`
-
-func NewPostgresRepository(ctx context.Context, db *sqlx.DB) (*PostgresRepository, error) {
-	_, err := db.ExecContext(ctx, schema)
+func NewPostgresRepository(ctx context.Context, db *sqlx.DB, migrationsPath string) (*PostgresRepository, error) {
+	driver, err := postgres.WithInstance(db.DB, &postgres.Config{})
+	if err != nil {
+		return nil, fmt.Errorf("create migrate instance: %w", err)
+	}
+	m, err := migrate.NewWithDatabaseInstance(
+		fmt.Sprintf("file://%s", migrationsPath),
+		"postgres", driver)
 	if err != nil {
 		return nil, err
+	}
+	err = m.Up()
+	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		return nil, fmt.Errorf("migration up: %w", err)
 	}
 	return &PostgresRepository{
 		db: db,
@@ -47,11 +51,11 @@ func (r *PostgresRepository) Add(ctx context.Context, d *models.RepositoryAddRec
 		var shortID string
 		err = row.Scan(&shortID)
 		if err != nil {
-			return nil, fmt.Errorf("%w", err)
+			return nil, fmt.Errorf("select short_id for url: %w", err)
 		}
 		return models.NewRepositoryGetRecord(shortID), fmt.Errorf("%w", repositories.ErrAlreadyExists)
 	} else if err != nil {
-		return nil, fmt.Errorf("%w", err)
+		return nil, fmt.Errorf("insert row into records: %w", err)
 	}
 	return models.NewRepositoryGetRecord(d.ShortID), nil
 }
@@ -60,7 +64,7 @@ func (r *PostgresRepository) Get(ctx context.Context, d *models.RepositoryGetRec
 	row := r.db.QueryRowContext(ctx, "SELECT url FROM records WHERE short_id=$1", d.ShortID)
 	var url string
 	err := row.Scan(&url)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, repositories.ErrNotFound
 	} else if err != nil {
 		return nil, repositories.ErrSomtheingWrong
