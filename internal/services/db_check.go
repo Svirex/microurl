@@ -2,16 +2,35 @@ package services
 
 import (
 	"context"
+	"errors"
 
-	"github.com/Svirex/microurl/internal/pkg/services"
 	"github.com/jmoiron/sqlx"
 )
+
+var ErrPingFailed = errors.New("ping to db failed")
+
+type DBCheck interface {
+	Ping(context.Context) error
+	Shutdown() error
+}
+
+type NoOpDBCheck struct{}
+
+var _ DBCheck = (*NoOpDBCheck)(nil)
+
+func (n *NoOpDBCheck) Ping(context.Context) error {
+	return ErrPingFailed
+}
+
+func (n *NoOpDBCheck) Shutdown() error {
+	return nil
+}
 
 type DefaultDBCheck struct {
 	db *sqlx.DB
 }
 
-var _ services.DBCheck = (*DefaultDBCheck)(nil)
+var _ DBCheck = (*DefaultDBCheck)(nil)
 
 func NewDBCheckService(db *sqlx.DB) *DefaultDBCheck {
 	return &DefaultDBCheck{

@@ -7,16 +7,14 @@ import (
 	"io"
 	"sync"
 
-	bck "github.com/Svirex/microurl/internal/backup"
-	"github.com/Svirex/microurl/internal/pkg/backup"
-	"github.com/Svirex/microurl/internal/pkg/models"
-	"github.com/Svirex/microurl/internal/pkg/repositories"
+	"github.com/Svirex/microurl/internal/backup"
+	"github.com/Svirex/microurl/internal/models"
 	"github.com/google/uuid"
 )
 
 var ErrEmptyFilename = errors.New("empty filename")
 
-var _ repositories.URLRepository = (*FileRepository)(nil)
+var _ URLRepository = (*FileRepository)(nil)
 
 type FileRepository struct {
 	*MapRepository
@@ -40,7 +38,7 @@ func NewFileRepository(ctx context.Context, filename string) (*FileRepository, e
 		return nil, err
 	}
 
-	backupWriter, err = bck.NewFileBackupWriter(filename)
+	backupWriter, err = backup.NewFileBackupWriter(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +49,7 @@ func NewFileRepository(ctx context.Context, filename string) (*FileRepository, e
 
 func (m *FileRepository) Add(ctx context.Context, d *models.RepositoryAddRecord) (*models.RepositoryGetRecord, error) {
 	res, err := m.MapRepository.Add(ctx, d)
-	if errors.Is(err, repositories.ErrAlreadyExists) {
+	if errors.Is(err, ErrAlreadyExists) {
 		return res, fmt.Errorf("short_id for url in MapRepository already exist: %w", err)
 	} else if err != nil {
 		return nil, fmt.Errorf("save url to mem storage: %w", err)
@@ -73,7 +71,7 @@ func (m *FileRepository) Shutdown() error {
 }
 
 func restoreRepository(ctx context.Context, filename string, repository *MapRepository) error {
-	reader, err := bck.NewFileBackupReader(filename)
+	reader, err := backup.NewFileBackupReader(filename)
 	if err != nil {
 		return err
 	}

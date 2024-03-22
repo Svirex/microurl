@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Svirex/microurl/internal/pkg/logging"
+	"github.com/Svirex/microurl/internal/logging"
 )
 
 type responseData struct {

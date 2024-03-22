@@ -7,7 +7,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/Svirex/microurl/internal/pkg/models"
+	"github.com/Svirex/microurl/internal/models"
 )
 
 func main() {

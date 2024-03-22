@@ -6,8 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Svirex/microurl/internal/pkg/models"
-	"github.com/Svirex/microurl/internal/pkg/repositories"
+	"github.com/Svirex/microurl/internal/models"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -40,7 +39,7 @@ func NewPostgresRepository(ctx context.Context, db *sqlx.DB, migrationsPath stri
 	}, nil
 }
 
-var _ repositories.URLRepository = (*PostgresRepository)(nil)
+var _ URLRepository = (*PostgresRepository)(nil)
 
 func (r *PostgresRepository) Add(ctx context.Context, d *models.RepositoryAddRecord) (*models.RepositoryGetRecord, error) {
 	_, err := r.db.ExecContext(ctx, `INSERT INTO records (url, short_id) 
@@ -53,7 +52,7 @@ func (r *PostgresRepository) Add(ctx context.Context, d *models.RepositoryAddRec
 		if err != nil {
 			return nil, fmt.Errorf("select short_id for url: %w", err)
 		}
-		return models.NewRepositoryGetRecord(shortID), fmt.Errorf("%w", repositories.ErrAlreadyExists)
+		return models.NewRepositoryGetRecord(shortID), fmt.Errorf("%w", ErrAlreadyExists)
 	} else if err != nil {
 		return nil, fmt.Errorf("insert row into records: %w", err)
 	}
@@ -65,9 +64,9 @@ func (r *PostgresRepository) Get(ctx context.Context, d *models.RepositoryGetRec
 	var url string
 	err := row.Scan(&url)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, repositories.ErrNotFound
+		return nil, ErrNotFound
 	} else if err != nil {
-		return nil, repositories.ErrSomtheingWrong
+		return nil, ErrSomtheingWrong
 	}
 
 	return models.NewRepositoryGetResult(url), nil

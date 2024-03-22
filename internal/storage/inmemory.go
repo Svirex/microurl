@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/Svirex/microurl/internal/pkg/models"
-	"github.com/Svirex/microurl/internal/pkg/repositories"
+	"github.com/Svirex/microurl/internal/models"
 )
 
 type ShortID string
@@ -18,7 +17,7 @@ type MapRepository struct {
 	mutex         sync.Mutex
 }
 
-var _ repositories.URLRepository = (*MapRepository)(nil)
+var _ URLRepository = (*MapRepository)(nil)
 
 func NewMapRepository() *MapRepository {
 	return &MapRepository{
@@ -31,7 +30,7 @@ func (m *MapRepository) Add(ctx context.Context, d *models.RepositoryAddRecord) 
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	if shortID, exist := m.urlsToShortID[URL(d.URL)]; exist {
-		return models.NewRepositoryGetRecord(string(shortID)), fmt.Errorf("%w", repositories.ErrAlreadyExists)
+		return models.NewRepositoryGetRecord(string(shortID)), fmt.Errorf("%w", ErrAlreadyExists)
 	} else {
 		m.addNewRecord(URL(d.URL), ShortID(d.ShortID))
 		return models.NewRepositoryGetRecord(d.ShortID), nil

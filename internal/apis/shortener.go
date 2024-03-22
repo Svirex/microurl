@@ -7,11 +7,11 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/Svirex/microurl/internal/pkg/logging"
-	appmiddleware "github.com/Svirex/microurl/internal/pkg/middleware"
-	"github.com/Svirex/microurl/internal/pkg/models"
-	"github.com/Svirex/microurl/internal/pkg/repositories"
-	"github.com/Svirex/microurl/internal/pkg/services"
+	"github.com/Svirex/microurl/internal/logging"
+	appmiddleware "github.com/Svirex/microurl/internal/middleware"
+	"github.com/Svirex/microurl/internal/models"
+	"github.com/Svirex/microurl/internal/services"
+	"github.com/Svirex/microurl/internal/storage"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 )
@@ -38,7 +38,7 @@ func (api *ShortenerAPI) Post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	serviceResult, err := api.shortenerService.Add(r.Context(), models.NewServiceAddRecord(string(url)))
-	if errors.Is(err, repositories.ErrAlreadyExists) {
+	if errors.Is(err, storage.ErrAlreadyExists) {
 		w.WriteHeader(http.StatusConflict)
 	} else if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -80,7 +80,7 @@ func (api *ShortenerAPI) JSONShorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	serviceResult, err := api.shortenerService.Add(r.Context(), models.NewServiceAddRecord(inputJSON.URL))
-	if errors.Is(err, repositories.ErrAlreadyExists) {
+	if errors.Is(err, storage.ErrAlreadyExists) {
 		w.Header().Add("Content-Type", "application/json")
 		w.WriteHeader(http.StatusConflict)
 	} else if err != nil {

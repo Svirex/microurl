@@ -5,11 +5,17 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Svirex/microurl/internal/pkg/models"
-	"github.com/Svirex/microurl/internal/pkg/repositories"
-	"github.com/Svirex/microurl/internal/pkg/services"
-	"github.com/Svirex/microurl/internal/pkg/util"
+	"github.com/Svirex/microurl/internal/generators"
+	"github.com/Svirex/microurl/internal/models"
+	"github.com/Svirex/microurl/internal/storage"
 )
+
+type Shortener interface {
+	Add(context.Context, *models.ServiceAddRecord) (*models.ServiceAddResult, error)
+	Get(context.Context, *models.ServiceGetRecord) (*models.ServiceGetResult, error)
+	Batch(context.Context, *models.BatchRequest) (*models.BatchResponse, error)
+	Shutdown() error
+}
 
 var ErrUnableAddRecord = errors.New("unable add record into repository")
 var ErrNotFound = errors.New("record not found")
@@ -17,12 +23,12 @@ var ErrSomethingWrong = errors.New("unknown error")
 var ErrUnableBackupRecord = errors.New("unable write record into backup")
 
 type ShortenerService struct {
-	Generator   util.Generator
-	Repository  repositories.URLRepository
+	Generator   generators.Generator
+	Repository  storage.URLRepository
 	ShortIDSize uint
 }
 
-func NewShortenerService(generator util.Generator, repository repositories.URLRepository, shortIDSize uint) *ShortenerService {
+func NewShortenerService(generator generators.Generator, repository storage.URLRepository, shortIDSize uint) *ShortenerService {
 	return &ShortenerService{
 		Generator:   generator,
 		Repository:  repository,
@@ -30,12 +36,12 @@ func NewShortenerService(generator util.Generator, repository repositories.URLRe
 	}
 }
 
-var _ services.Shortener = (*ShortenerService)(nil)
+var _ Shortener = (*ShortenerService)(nil)
 
 func (s *ShortenerService) Add(ctx context.Context, d *models.ServiceAddRecord) (*models.ServiceAddResult, error) {
 	shortID := s.generateShortID()
 	res, err := s.Repository.Add(ctx, models.NewRepositoryAddRecord(shortID, d.URL))
-	if errors.Is(err, repositories.ErrAlreadyExists) {
+	if errors.Is(err, storage.ErrAlreadyExists) {
 		return models.NewServiceAddResult(res.ShortID), fmt.Errorf("short_id for url already exist: %w", err)
 	} else if err != nil {
 		return nil, fmt.Errorf("repository add: %w", err)
@@ -45,7 +51,7 @@ func (s *ShortenerService) Add(ctx context.Context, d *models.ServiceAddRecord) 
 
 func (s *ShortenerService) Get(ctx context.Context, d *models.ServiceGetRecord) (*models.ServiceGetResult, error) {
 	result, err := s.Repository.Get(ctx, models.NewRepositoryGetRecord(d.ShortID))
-	if errors.Is(err, repositories.ErrNotFound) {
+	if errors.Is(err, storage.ErrNotFound) {
 		return nil, ErrNotFound
 	} else if err != nil {
 		return nil, ErrSomethingWrong

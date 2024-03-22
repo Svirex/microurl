@@ -1,10 +1,10 @@
-package repositories
+package storage
 
 import (
 	"context"
 	"errors"
 
-	"github.com/Svirex/microurl/internal/pkg/models"
+	"github.com/Svirex/microurl/internal/models"
 )
 
 var ErrNotFound = errors.New("not found record")

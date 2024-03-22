@@ -11,12 +11,10 @@ import (
 	"time"
 
 	"github.com/Svirex/microurl/internal/apis"
+	"github.com/Svirex/microurl/internal/config"
 	"github.com/Svirex/microurl/internal/generators"
 	"github.com/Svirex/microurl/internal/logging"
-	"github.com/Svirex/microurl/internal/pkg/config"
-	"github.com/Svirex/microurl/internal/pkg/repositories"
-	"github.com/Svirex/microurl/internal/pkg/server"
-	srv "github.com/Svirex/microurl/internal/pkg/services"
+	"github.com/Svirex/microurl/internal/server"
 	"github.com/Svirex/microurl/internal/services"
 	"github.com/Svirex/microurl/internal/storage"
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -48,7 +46,7 @@ func main() {
 		defer db.Close()
 	}
 
-	var repository repositories.URLRepository
+	var repository storage.URLRepository
 
 	serverCtx, serverCancel := context.WithCancel(context.Background())
 
@@ -73,12 +71,12 @@ func main() {
 	logger.Info("Created shorten service...")
 	defer service.Shutdown()
 
-	var dbCheckService srv.DBCheck
+	var dbCheckService services.DBCheck
 
 	if cfg.PostgresDSN != "" {
 		dbCheckService = services.NewDBCheckService(db)
 	} else {
-		dbCheckService = &srv.NoOpDBCheck{}
+		dbCheckService = &services.NoOpDBCheck{}
 	}
 
 	logger.Info("Created DB check service...", "type=", fmt.Sprintf("%T", dbCheckService))

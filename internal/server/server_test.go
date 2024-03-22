@@ -16,10 +16,8 @@ import (
 
 	"github.com/Svirex/microurl/internal/apis"
 	"github.com/Svirex/microurl/internal/generators"
-	"github.com/Svirex/microurl/internal/pkg/logging"
-	"github.com/Svirex/microurl/internal/pkg/models"
-	"github.com/Svirex/microurl/internal/pkg/repositories"
-	srv "github.com/Svirex/microurl/internal/pkg/services"
+	"github.com/Svirex/microurl/internal/logging"
+	"github.com/Svirex/microurl/internal/models"
 	"github.com/Svirex/microurl/internal/services"
 	"github.com/Svirex/microurl/internal/storage"
 	"github.com/stretchr/testify/require"
@@ -37,7 +35,7 @@ type MockDBCheck struct {
 	err error
 }
 
-var _ srv.DBCheck = (*MockDBCheck)(nil)
+var _ services.DBCheck = (*MockDBCheck)(nil)
 
 func (m *MockDBCheck) Ping(ctx context.Context) error {
 	return m.err
@@ -100,7 +98,7 @@ func TestRouterPost(t *testing.T) {
 
 type MockRepository struct{}
 
-var _ repositories.URLRepository = (*MockRepository)(nil)
+var _ storage.URLRepository = (*MockRepository)(nil)
 
 func (m *MockRepository) Add(context.Context, *models.RepositoryAddRecord) (*models.RepositoryGetRecord, error) {
 	return nil, fmt.Errorf("couldn't add")
