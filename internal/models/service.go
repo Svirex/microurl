@@ -39,3 +39,31 @@ func NewServiceAddResult(shortID string) *ServiceAddResult {
 		ShortID: shortID,
 	}
 }
+
+type BatchRequestRecord struct {
+	CorrID string `json:"correlation_id"`
+	URL    string `json:"original_url"`
+}
+
+type BatchRequest struct {
+	Records []BatchRequestRecord
+}
+
+type BatchResponseRecord struct {
+	CorrID   string `json:"correlation_id"`
+	ShortURL string `json:"short_url"`
+}
+
+type BatchServiceRecord struct {
+	CorrID   string `json:"correlation_id"`
+	URL      string `json:"original_url"`
+	ShortURL string `json:"short_url"`
+}
+
+type BatchService struct {
+	Records []BatchServiceRecord
+}
+
+type BatchResponse struct {
+	Records []BatchResponseRecord
+}

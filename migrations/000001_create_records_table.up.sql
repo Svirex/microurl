@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS
+public.records (
+	id SERIAL PRIMARY KEY,
+	url TEXT UNIQUE NOT NULL,
+	short_id VARCHAR(32) NOT NULL
+);

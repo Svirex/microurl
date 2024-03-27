@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Svirex/microurl/internal/pkg/logging"
+	"github.com/Svirex/microurl/internal/logging"
 )
 
 type responseData struct {
@@ -17,15 +17,15 @@ type loggingResponseWriter struct {
 	responseData *responseData
 }
 
-func (writer *loggingResponseWriter) Write(data []byte) (int, error) {
-	size, err := writer.ResponseWriter.Write(data)
-	writer.responseData.size += size
+func (w *loggingResponseWriter) Write(data []byte) (int, error) {
+	size, err := w.ResponseWriter.Write(data)
+	w.responseData.size += size
 	return size, err
 }
 
-func (writer *loggingResponseWriter) WriteHeader(statusCode int) {
-	writer.ResponseWriter.WriteHeader(statusCode)
-	writer.responseData.status = statusCode
+func (w *loggingResponseWriter) WriteHeader(statusCode int) {
+	w.ResponseWriter.WriteHeader(statusCode)
+	w.responseData.status = statusCode
 }
 
 func NewLoggingMiddleware(logger logging.Logger) func(next http.Handler) http.Handler {

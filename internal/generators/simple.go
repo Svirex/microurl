@@ -2,13 +2,11 @@ package generators
 
 import (
 	"math/rand"
-
-	"github.com/Svirex/microurl/internal/pkg/util"
 )
 
 const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-var _ util.Generator = (*SimpleGenerator)(nil)
+var _ Generator = (*SimpleGenerator)(nil)
 
 type SimpleGenerator struct {
 	Rand *rand.Rand
@@ -22,7 +20,7 @@ func (g *SimpleGenerator) RandString(size uint) string {
 	return string(b)
 }
 
-func NewSimpleGenerator(seed int64) util.Generator {
+func NewSimpleGenerator(seed int64) Generator {
 	return &SimpleGenerator{
 		Rand: rand.New(rand.NewSource(seed)),
 	}
