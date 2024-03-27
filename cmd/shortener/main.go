@@ -46,41 +46,22 @@ func main() {
 		defer db.Close()
 	}
 
-	var repository storage.URLRepository
-
 	serverCtx, serverCancel := context.WithCancel(context.Background())
 
-	if cfg.PostgresDSN != "" {
-		repository, err = storage.NewPostgresRepository(serverCtx, db, cfg.MigrationsPath)
-		if err != nil {
-			panic(err)
-		}
-	} else if cfg.FileStoragePath != "" {
-		repository, err = storage.NewFileRepository(serverCtx, cfg.FileStoragePath)
-		if err != nil {
-			panic(err)
-		}
-	} else {
-		repository = storage.NewMapRepository()
+	repository, err := storage.NewRepository(serverCtx, cfg, db)
+	if err != nil {
+		log.Fatalf("create repository: %#v", err)
 	}
-
-	logger.Info("Created repository...", "type=", fmt.Sprintf("%T", repository))
 	defer repository.Shutdown()
+	logger.Info("Created repository...", "type=", fmt.Sprintf("%T", repository))
 
 	service := services.NewShortenerService(generator, repository, shortURLLength)
-	logger.Info("Created shorten service...")
 	defer service.Shutdown()
+	logger.Info("Created shorten service...")
 
-	var dbCheckService services.DBCheck
-
-	if cfg.PostgresDSN != "" {
-		dbCheckService = services.NewDBCheckService(db)
-	} else {
-		dbCheckService = &services.NoOpDBCheck{}
-	}
-
-	logger.Info("Created DB check service...", "type=", fmt.Sprintf("%T", dbCheckService))
+	dbCheckService := services.NewDBCheck(db, cfg)
 	defer dbCheckService.Shutdown()
+	logger.Info("Created DB check service...", "type=", fmt.Sprintf("%T", dbCheckService))
 
 	api := apis.NewShortenerAPI(service, dbCheckService, cfg.BaseURL)
 	handler := api.Routes(logger)

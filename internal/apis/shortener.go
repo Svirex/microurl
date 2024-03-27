@@ -32,21 +32,26 @@ func NewShortenerAPI(service services.Shortener, dbCheckService services.DBCheck
 
 func (api *ShortenerAPI) Post(w http.ResponseWriter, r *http.Request) {
 	url, err := io.ReadAll(r.Body)
-	r.Body.Close()
 	if err != nil || len(url) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	r.Body.Close()
 	serviceResult, err := api.shortenerService.Add(r.Context(), models.NewServiceAddRecord(string(url)))
-	if errors.Is(err, storage.ErrAlreadyExists) {
-		w.WriteHeader(http.StatusConflict)
-	} else if err != nil {
+	if err != nil && !errors.Is(err, storage.ErrAlreadyExists) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
+	}
+	var exist bool
+	if errors.Is(err, storage.ErrAlreadyExists) {
+		exist = true
+	}
+	result := fmt.Sprintf("%s/%s", api.BaseURL, serviceResult.ShortID)
+	if exist {
+		w.WriteHeader(http.StatusConflict)
 	} else {
 		w.WriteHeader(http.StatusCreated)
 	}
-	result := fmt.Sprintf("%s/%s", api.BaseURL, serviceResult.ShortID)
 	w.Write([]byte(result))
 }
 
@@ -68,11 +73,11 @@ func (api *ShortenerAPI) JSONShorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	body, err := io.ReadAll(r.Body)
-	r.Body.Close()
 	if err != nil || len(body) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	r.Body.Close()
 	var inputJSON models.InputJSON
 	err = json.Unmarshal(body, &inputJSON)
 	if err != nil {
@@ -80,15 +85,13 @@ func (api *ShortenerAPI) JSONShorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	serviceResult, err := api.shortenerService.Add(r.Context(), models.NewServiceAddRecord(inputJSON.URL))
-	if errors.Is(err, storage.ErrAlreadyExists) {
-		w.Header().Add("Content-Type", "application/json")
-		w.WriteHeader(http.StatusConflict)
-	} else if err != nil {
+	if err != nil && !errors.Is(err, storage.ErrAlreadyExists) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
-	} else {
-		w.Header().Add("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
+	}
+	var exist bool
+	if errors.Is(err, storage.ErrAlreadyExists) {
+		exist = true
 	}
 	result := &models.ResultJSON{
 		ShortURL: fmt.Sprintf("%s/%s", api.BaseURL, serviceResult.ShortID),
@@ -97,6 +100,12 @@ func (api *ShortenerAPI) JSONShorten(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
+	}
+	w.Header().Add("Content-Type", "application/json")
+	if exist {
+		w.WriteHeader(http.StatusConflict)
+	} else {
+		w.WriteHeader(http.StatusCreated)
 	}
 	w.Write(body)
 
@@ -118,11 +127,11 @@ func (api *ShortenerAPI) Batch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	body, err := io.ReadAll(r.Body)
-	r.Body.Close()
 	if err != nil || len(body) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	r.Body.Close()
 	var batch models.BatchRequest
 	err = json.Unmarshal(body, &batch.Records)
 	if err != nil {

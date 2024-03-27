@@ -30,7 +30,7 @@ func (m *MapRepository) Add(ctx context.Context, d *models.RepositoryAddRecord) 
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	if shortID, exist := m.urlsToShortID[URL(d.URL)]; exist {
-		return models.NewRepositoryGetRecord(string(shortID)), fmt.Errorf("%w", ErrAlreadyExists)
+		return models.NewRepositoryGetRecord(string(shortID)), fmt.Errorf("add record map repository: %w", ErrAlreadyExists)
 	} else {
 		m.addNewRecord(URL(d.URL), ShortID(d.ShortID))
 		return models.NewRepositoryGetRecord(d.ShortID), nil

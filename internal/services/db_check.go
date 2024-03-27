@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/Svirex/microurl/internal/config"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -44,4 +45,15 @@ func (c *DefaultDBCheck) Ping(ctx context.Context) error {
 
 func (c *DefaultDBCheck) Shutdown() error {
 	return c.db.Close()
+}
+
+func NewDBCheck(db *sqlx.DB, cfg *config.Config) DBCheck {
+	var dbCheckService DBCheck
+
+	if cfg.PostgresDSN != "" {
+		dbCheckService = NewDBCheckService(db)
+	} else {
+		dbCheckService = &NoOpDBCheck{}
+	}
+	return dbCheckService
 }

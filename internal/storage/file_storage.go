@@ -24,7 +24,7 @@ type FileRepository struct {
 
 func NewFileRepository(ctx context.Context, filename string) (*FileRepository, error) {
 	if filename == "" {
-		return nil, ErrEmptyFilename
+		return nil, fmt.Errorf("create new file repository: %w", ErrEmptyFilename)
 	}
 
 	repository := &FileRepository{
@@ -35,12 +35,12 @@ func NewFileRepository(ctx context.Context, filename string) (*FileRepository, e
 
 	err := restoreRepository(ctx, filename, repository.MapRepository)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create new file repository, restore data: %w", err)
 	}
 
 	backupWriter, err = backup.NewFileBackupWriter(filename)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create new file repository, new backup writer: %w", err)
 	}
 
 	repository.backupWriter = backupWriter
@@ -73,18 +73,18 @@ func (m *FileRepository) Shutdown() error {
 func restoreRepository(ctx context.Context, filename string, repository *MapRepository) error {
 	reader, err := backup.NewFileBackupReader(filename)
 	if err != nil {
-		return err
+		return fmt.Errorf("restore data, new backup reader: %w", err)
 	}
 	defer reader.Close()
 	record, err := reader.Read(ctx)
 	if err != nil && !errors.Is(err, io.EOF) {
-		return err
+		return fmt.Errorf("restore data, read: %w", err)
 	}
 	for record != nil {
 		repository.Add(context.Background(), models.NewRepositoryAddRecord(record.ShortID, record.URL))
 		record, err = reader.Read(ctx)
 		if err != nil && !errors.Is(err, io.EOF) {
-			return err
+			return fmt.Errorf("restore data, while read: %w", err)
 		}
 	}
 	return nil

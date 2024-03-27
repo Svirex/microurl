@@ -22,13 +22,13 @@ type PostgresRepository struct {
 func NewPostgresRepository(ctx context.Context, db *sqlx.DB, migrationsPath string) (*PostgresRepository, error) {
 	driver, err := postgres.WithInstance(db.DB, &postgres.Config{})
 	if err != nil {
-		return nil, fmt.Errorf("create migrate instance: %w", err)
+		return nil, fmt.Errorf("create instance db for migrate: %w", err)
 	}
 	m, err := migrate.NewWithDatabaseInstance(
 		fmt.Sprintf("file://%s", migrationsPath),
 		"postgres", driver)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("create migrate: %w", err)
 	}
 	err = m.Up()
 	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
@@ -64,9 +64,9 @@ func (r *PostgresRepository) Get(ctx context.Context, d *models.RepositoryGetRec
 	var url string
 	err := row.Scan(&url)
 	if errors.Is(err, sql.ErrNoRows) {
-		return nil, ErrNotFound
+		return nil, fmt.Errorf("%w: postgres get by short id: %w", ErrNotFound, err)
 	} else if err != nil {
-		return nil, ErrSomtheingWrong
+		return nil, fmt.Errorf("postgres get by short id: %w", err)
 	}
 
 	return models.NewRepositoryGetResult(url), nil
@@ -79,7 +79,7 @@ func (r *PostgresRepository) Shutdown() error {
 func (r *PostgresRepository) Batch(ctx context.Context, batch *models.BatchService) (*models.BatchResponse, error) {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, fmt.Errorf("coulndt add batch. err: %w", err)
+		return nil, fmt.Errorf("coulndt begin transaction: %w", err)
 	}
 	defer tx.Rollback()
 
@@ -89,7 +89,7 @@ func (r *PostgresRepository) Batch(ctx context.Context, batch *models.BatchServi
 												SET short_id=records.short_id
 									 		RETURNING short_id;`)
 	if err != nil {
-		return nil, fmt.Errorf("coulndt add batch. err: %w", err)
+		return nil, fmt.Errorf("coulndt prepare statement: %w", err)
 	}
 	response := &models.BatchResponse{
 		Records: make([]models.BatchResponseRecord, len(batch.Records)),
@@ -98,13 +98,13 @@ func (r *PostgresRepository) Batch(ctx context.Context, batch *models.BatchServi
 		row := stmt.QueryRowContext(ctx, batch.Records[i].URL, batch.Records[i].ShortURL)
 		err := row.Scan(&response.Records[i].ShortURL)
 		if err != nil {
-			return nil, fmt.Errorf("coulndt add batch. err: %w", err)
+			return nil, fmt.Errorf("coulndt scan short id: %w", err)
 		}
 		response.Records[i].CorrID = batch.Records[i].CorrID
 	}
 	err = tx.Commit()
 	if err != nil {
-		return nil, fmt.Errorf("coulndt add batch. err: %w", err)
+		return nil, fmt.Errorf("coulndt commit transaction: %w", err)
 	}
 	return response, nil
 }

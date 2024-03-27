@@ -17,7 +17,6 @@ type Shortener interface {
 	Shutdown() error
 }
 
-var ErrUnableAddRecord = errors.New("unable add record into repository")
 var ErrNotFound = errors.New("record not found")
 var ErrSomethingWrong = errors.New("unknown error")
 var ErrUnableBackupRecord = errors.New("unable write record into backup")
@@ -42,7 +41,7 @@ func (s *ShortenerService) Add(ctx context.Context, d *models.ServiceAddRecord) 
 	shortID := s.generateShortID()
 	res, err := s.Repository.Add(ctx, models.NewRepositoryAddRecord(shortID, d.URL))
 	if errors.Is(err, storage.ErrAlreadyExists) {
-		return models.NewServiceAddResult(res.ShortID), fmt.Errorf("short_id for url already exist: %w", err)
+		return models.NewServiceAddResult(res.ShortID), fmt.Errorf("short id for url already exist: %w", err)
 	} else if err != nil {
 		return nil, fmt.Errorf("repository add: %w", err)
 	}
@@ -52,9 +51,9 @@ func (s *ShortenerService) Add(ctx context.Context, d *models.ServiceAddRecord) 
 func (s *ShortenerService) Get(ctx context.Context, d *models.ServiceGetRecord) (*models.ServiceGetResult, error) {
 	result, err := s.Repository.Get(ctx, models.NewRepositoryGetRecord(d.ShortID))
 	if errors.Is(err, storage.ErrNotFound) {
-		return nil, ErrNotFound
+		return nil, fmt.Errorf("%w: service get by short id: %w", ErrNotFound, err)
 	} else if err != nil {
-		return nil, ErrSomethingWrong
+		return nil, fmt.Errorf("service get by short id: %w", err)
 	}
 	return models.NewServiceGetResult(result.URL), nil
 }
@@ -78,7 +77,7 @@ func (s *ShortenerService) Batch(ctx context.Context, batch *models.BatchRequest
 	}
 	result, err := s.Repository.Batch(ctx, batchService)
 	if err != nil {
-		return nil, ErrUnableAddRecord
+		return nil, fmt.Errorf("service batch add: %w", err)
 	}
 	return result, nil
 }
