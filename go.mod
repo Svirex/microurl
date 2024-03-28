@@ -6,6 +6,7 @@ require (
 	github.com/caarlos0/env/v10 v10.0.0
 	github.com/go-chi/chi v1.5.5
 	github.com/go-chi/chi/v5 v5.0.11
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/golang-migrate/migrate/v4 v4.17.0
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgerrcode v0.0.0-20240316143900-6e2875d9b438

@@ -162,19 +162,26 @@ func (api *ShortenerAPI) Batch(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (api *ShortenerAPI) Routes(logger logging.Logger) chi.Router {
+func (api *ShortenerAPI) GetAllUrls(response http.ResponseWriter, request *http.Request) {
+	fmt.Println(request.Context().Value(appmiddleware.JWTKey("uid")))
+	response.WriteHeader(http.StatusOK)
+}
+
+func (api *ShortenerAPI) Routes(logger logging.Logger, secretKey string) chi.Router {
 	router := chi.NewRouter()
 
 	router.Use(middleware.Recoverer)
 	router.Use(appmiddleware.NewLoggingMiddleware(logger))
 	router.Use(appmiddleware.GzipHandler)
 	router.Use(middleware.Compress(5, "text/html", "application/json"))
+	router.Use(appmiddleware.CookieAuth(secretKey))
 
 	router.Get("/{shortID:[A-Za-z]+}", api.Get)
 	router.Post("/", api.Post)
 	router.Post("/api/shorten", api.JSONShorten)
 	router.Get("/ping", api.Ping)
 	router.Post("/api/shorten/batch", api.Batch)
+	router.Get("/api/user/urls", api.GetAllUrls)
 
 	return router
 }

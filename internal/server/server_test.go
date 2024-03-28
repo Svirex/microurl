@@ -20,6 +20,7 @@ import (
 	"github.com/Svirex/microurl/internal/models"
 	"github.com/Svirex/microurl/internal/services"
 	"github.com/Svirex/microurl/internal/storage"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/require"
 )
 
@@ -59,7 +60,7 @@ func TestRouterPost(t *testing.T) {
 	api := apis.NewShortenerAPI(service, NewMockDBCheck(nil), "http://svirex.ru")
 	require.NotNil(t, api)
 
-	testServer := httptest.NewServer(api.Routes(&FakeLogger{}))
+	testServer := httptest.NewServer(api.Routes(&FakeLogger{}, "fake_secret_key"))
 	defer testServer.Close()
 
 	u, _ := url.Parse(testServer.URL)
@@ -122,7 +123,7 @@ func TestRouterPostWithMockRepo(t *testing.T) {
 	api := apis.NewShortenerAPI(service, NewMockDBCheck(nil), "http://svirex.ru")
 	require.NotNil(t, api)
 
-	testServer := httptest.NewServer(api.Routes(&FakeLogger{}))
+	testServer := httptest.NewServer(api.Routes(&FakeLogger{}, "fake_secret_key"))
 	defer testServer.Close()
 
 	{
@@ -147,7 +148,7 @@ func TestServerGet(t *testing.T) {
 	api := apis.NewShortenerAPI(service, NewMockDBCheck(nil), "http://svirex.ru")
 	require.NotNil(t, api)
 
-	testServer := httptest.NewServer(api.Routes(&FakeLogger{}))
+	testServer := httptest.NewServer(api.Routes(&FakeLogger{}, "fake_secret_key"))
 	defer testServer.Close()
 
 	{
@@ -226,7 +227,7 @@ func TestServerJSONShorten(t *testing.T) {
 	api := apis.NewShortenerAPI(service, NewMockDBCheck(nil), "http://svirex.ru")
 	require.NotNil(t, api)
 
-	testServer := httptest.NewServer(api.Routes(&FakeLogger{}))
+	testServer := httptest.NewServer(api.Routes(&FakeLogger{}, "fake_secret_key"))
 	defer testServer.Close()
 
 	apiURL := testServer.URL + "/api/shorten"
@@ -307,7 +308,7 @@ func TestServerPingOk(t *testing.T) {
 	api := apis.NewShortenerAPI(service, NewMockDBCheck(nil), "http://svirex.ru")
 	require.NotNil(t, api)
 
-	testServer := httptest.NewServer(api.Routes(&FakeLogger{}))
+	testServer := httptest.NewServer(api.Routes(&FakeLogger{}, "fake_secret_key"))
 	defer testServer.Close()
 
 	{
@@ -330,7 +331,7 @@ func TestServerPingFail(t *testing.T) {
 	api := apis.NewShortenerAPI(service, NewMockDBCheck(errors.New("OOPS!!!")), "http://svirex.ru")
 	require.NotNil(t, api)
 
-	testServer := httptest.NewServer(api.Routes(&FakeLogger{}))
+	testServer := httptest.NewServer(api.Routes(&FakeLogger{}, "fake_secret_key"))
 	defer testServer.Close()
 
 	{
@@ -353,7 +354,7 @@ func TestBatch(t *testing.T) {
 	api := apis.NewShortenerAPI(service, NewMockDBCheck(errors.New("OOPS!!!")), "http://svirex.ru")
 	require.NotNil(t, api)
 
-	testServer := httptest.NewServer(api.Routes(&FakeLogger{}))
+	testServer := httptest.NewServer(api.Routes(&FakeLogger{}, "fake_secret_key"))
 	defer testServer.Close()
 
 	{
@@ -385,5 +386,78 @@ func TestBatch(t *testing.T) {
 		require.Equal(t, http.StatusCreated, resp.StatusCode)
 
 		require.NotEmpty(t, respBody)
+	}
+}
+
+func TestSetupAuthCookie(t *testing.T) {
+	rep := storage.NewMapRepository()
+	require.NotNil(t, rep)
+	service := services.NewShortenerService(generators.NewSimpleGenerator(255), rep, 8)
+	require.NotNil(t, service)
+	api := apis.NewShortenerAPI(service, NewMockDBCheck(nil), "http://svirex.ru")
+	require.NotNil(t, api)
+
+	secretKey := "fake_secret_key"
+
+	testServer := httptest.NewServer(api.Routes(&FakeLogger{}, secretKey))
+	defer testServer.Close()
+
+	{ // Нет куки
+		req, err := http.NewRequest(http.MethodGet, testServer.URL+"/api/user/urls", nil)
+		require.NoError(t, err)
+
+		resp, err := testServer.Client().Do(req)
+		require.NoError(t, err)
+		resp.Body.Close()
+
+		foundJWTCookie := false
+		for _, v := range resp.Cookies() {
+			if v.Name == "jwt" {
+				foundJWTCookie = true
+				break
+			}
+		}
+		require.True(t, foundJWTCookie)
+	}
+	{ // Невалидный токен jwt
+		req, err := http.NewRequest(http.MethodGet, testServer.URL+"/api/user/urls", nil)
+		require.NoError(t, err)
+
+		req.AddCookie(&http.Cookie{
+			Name:  "jwt",
+			Value: "sfgdfsdfs",
+		})
+
+		resp, err := testServer.Client().Do(req)
+		require.NoError(t, err)
+		resp.Body.Close()
+
+		foundJWTCookie := false
+		for _, v := range resp.Cookies() {
+			if v.Name == "jwt" {
+				foundJWTCookie = true
+				break
+			}
+		}
+		require.True(t, foundJWTCookie)
+	}
+	{ // В jwt нет user id
+		req, err := http.NewRequest(http.MethodGet, testServer.URL+"/api/user/urls", nil)
+		require.NoError(t, err)
+
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{})
+		tokenString, err := token.SignedString([]byte(secretKey))
+		require.NoError(t, err)
+
+		req.AddCookie(&http.Cookie{
+			Name:  "jwt",
+			Value: tokenString,
+		})
+
+		resp, err := testServer.Client().Do(req)
+		require.NoError(t, err)
+		resp.Body.Close()
+
+		require.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	}
 }
