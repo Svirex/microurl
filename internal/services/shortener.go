@@ -14,6 +14,7 @@ type Shortener interface {
 	Add(context.Context, *models.ServiceAddRecord) (*models.ServiceAddResult, error)
 	Get(context.Context, *models.ServiceGetRecord) (*models.ServiceGetResult, error)
 	Batch(context.Context, *models.BatchRequest) (*models.BatchResponse, error)
+	UserURLs(context.Context, string) ([]models.UserURLRecord, error)
 	Shutdown() error
 }
 
@@ -78,6 +79,14 @@ func (s *ShortenerService) Batch(ctx context.Context, batch *models.BatchRequest
 	result, err := s.Repository.Batch(ctx, batchService)
 	if err != nil {
 		return nil, fmt.Errorf("service batch add: %w", err)
+	}
+	return result, nil
+}
+
+func (s *ShortenerService) UserURLs(ctx context.Context, uid string) ([]models.UserURLRecord, error) {
+	result, err := s.Repository.UserURLs(ctx, uid)
+	if err != nil {
+		return nil, fmt.Errorf("service get user ulrs: %w", err)
 	}
 	return result, nil
 }

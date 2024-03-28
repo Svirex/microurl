@@ -108,3 +108,9 @@ func (r *PostgresRepository) Batch(ctx context.Context, batch *models.BatchServi
 	}
 	return response, nil
 }
+
+func (m *PostgresRepository) UserURLs(_ context.Context, uid string) ([]models.UserURLRecord, error) {
+	result := make([]models.UserURLRecord, 0)
+
+	return result, nil
+}

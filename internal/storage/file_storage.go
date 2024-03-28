@@ -144,3 +144,9 @@ func (m *FileRepository) Batch(ctx context.Context, batch *models.BatchService) 
 	}
 	return response, nil
 }
+
+func (m *FileRepository) UserURLs(_ context.Context, uid string) ([]models.UserURLRecord, error) {
+	result := make([]models.UserURLRecord, 0)
+
+	return result, nil
+}

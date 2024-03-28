@@ -117,6 +117,12 @@ func (m *MockRepository) Batch(context.Context, *models.BatchService) (*models.B
 	return nil, fmt.Errorf("couldn't add")
 }
 
+func (m *MockRepository) UserURLs(_ context.Context, uid string) ([]models.UserURLRecord, error) {
+	result := make([]models.UserURLRecord, 0)
+
+	return result, nil
+}
+
 func TestRouterPostWithMockRepo(t *testing.T) {
 	service := services.NewShortenerService(generators.NewSimpleGenerator(255), &MockRepository{}, 8)
 	require.NotNil(t, service)

@@ -74,7 +74,14 @@ func (m *MapRepository) Batch(_ context.Context, batch *models.BatchService) (*m
 }
 
 func (m *MapRepository) UserURLs(_ context.Context, uid string) ([]models.UserURLRecord, error) {
-
+	result := make([]models.UserURLRecord, 0)
+	for i := range m.uidToRecords {
+		result = append(result, models.UserURLRecord{
+			ShortID: string(m.uidToRecords[i].shortID),
+			URL:     string(m.uidToRecords[i].url),
+		})
+	}
+	return result, nil
 }
 
 func (m *MapRepository) addNewRecord(url URL, shortID ShortID, uid UID) {

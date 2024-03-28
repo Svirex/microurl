@@ -163,8 +163,35 @@ func (api *ShortenerAPI) Batch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (api *ShortenerAPI) GetAllUrls(response http.ResponseWriter, request *http.Request) {
-	fmt.Println(request.Context().Value(appmiddleware.JWTKey("uid")))
-	response.WriteHeader(http.StatusOK)
+	var uid string
+	var ok bool
+	if uid, ok = request.Context().Value(appmiddleware.JWTKey("uid")).(string); !ok {
+		response.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	result, err := api.shortenerService.UserURLs(request.Context(), uid)
+	if err != nil {
+		response.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if len(result) == 0 {
+		response.WriteHeader(http.StatusNoContent)
+		return
+	}
+	answer := make([]models.UserURL, 0, len(result))
+	for i := range result {
+		answer = append(answer, models.UserURL{
+			URL:      result[i].URL,
+			ShortURL: fmt.Sprintf("%s/%s", api.BaseURL, result[i].ShortID),
+		})
+	}
+	body, err := json.Marshal(answer)
+	if err != nil {
+		response.WriteHeader(http.StatusNoContent)
+		return
+	}
+	response.Header().Add("Content-Type", "application/json")
+	response.Write(body)
 }
 
 func (api *ShortenerAPI) Routes(logger logging.Logger, secretKey string) chi.Router {
