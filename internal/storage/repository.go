@@ -18,6 +18,7 @@ type URLRepository interface {
 	Add(context.Context, *models.RepositoryAddRecord) (*models.RepositoryGetRecord, error)
 	Get(context.Context, *models.RepositoryGetRecord) (*models.RepositoryGetResult, error)
 	Batch(context.Context, *models.BatchService) (*models.BatchResponse, error)
+	UserURLs(ctx context.Context, uid string) ([]models.UserURLRecord, error)
 	Shutdown() error
 }
 

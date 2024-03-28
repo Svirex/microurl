@@ -10,10 +10,17 @@ import (
 
 type ShortID string
 type URL string
+type UID string
+
+type Record struct {
+	shortID ShortID
+	url     URL
+}
 
 type MapRepository struct {
 	data          map[ShortID]URL
 	urlsToShortID map[URL]ShortID
+	uidToRecords  map[UID]Record
 	mutex         sync.Mutex
 }
 
@@ -23,6 +30,7 @@ func NewMapRepository() *MapRepository {
 	return &MapRepository{
 		data:          make(map[ShortID]URL),
 		urlsToShortID: make(map[URL]ShortID),
+		uidToRecords:  make(map[UID]Record),
 	}
 }
 
@@ -32,7 +40,7 @@ func (m *MapRepository) Add(ctx context.Context, d *models.RepositoryAddRecord) 
 	if shortID, exist := m.urlsToShortID[URL(d.URL)]; exist {
 		return models.NewRepositoryGetRecord(string(shortID)), fmt.Errorf("add record map repository: %w", ErrAlreadyExists)
 	} else {
-		m.addNewRecord(URL(d.URL), ShortID(d.ShortID))
+		m.addNewRecord(URL(d.URL), ShortID(d.ShortID), UID(d.UID))
 		return models.NewRepositoryGetRecord(d.ShortID), nil
 	}
 }
@@ -65,7 +73,15 @@ func (m *MapRepository) Batch(_ context.Context, batch *models.BatchService) (*m
 	return response, nil
 }
 
-func (m *MapRepository) addNewRecord(url URL, shortID ShortID) {
+func (m *MapRepository) UserURLs(_ context.Context, uid string) ([]models.UserURLRecord, error) {
+
+}
+
+func (m *MapRepository) addNewRecord(url URL, shortID ShortID, uid UID) {
 	m.data[shortID] = url
 	m.urlsToShortID[url] = shortID
+	m.uidToRecords[uid] = Record{
+		shortID: shortID,
+		url:     url,
+	}
 }

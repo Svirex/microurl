@@ -3,6 +3,7 @@ package models
 type RepositoryAddRecord struct {
 	ShortID string
 	URL     string
+	UID     string
 }
 
 type RepositoryGetRecord struct {
@@ -11,6 +12,11 @@ type RepositoryGetRecord struct {
 
 type RepositoryGetResult struct {
 	URL string
+}
+
+type UserURLRecord struct {
+	URL     string
+	ShortID string
 }
 
 func NewRepositoryAddRecord(shortID, url string) *RepositoryAddRecord {
