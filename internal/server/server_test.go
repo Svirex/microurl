@@ -11,6 +11,7 @@ import (
 	"net/http/cookiejar"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"regexp"
 	"strings"
 	"testing"
@@ -574,7 +575,9 @@ func TestUserURLsWithMapRepository(t *testing.T) {
 }
 
 func NewTestServerWithFileRepository(t *testing.T) *httptest.Server {
-	rep, err := storage.NewFileRepository(context.TODO(), "tt.txt")
+	tmp_name := "tt.txt"
+	defer os.Remove(tmp_name)
+	rep, err := storage.NewFileRepository(context.TODO(), tmp_name)
 	require.NoError(t, err)
 	require.NotNil(t, rep)
 	service := services.NewShortenerService(generators.NewSimpleGenerator(255), rep, 8)

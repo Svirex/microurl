@@ -42,8 +42,14 @@ func NewPostgresRepository(ctx context.Context, db *sqlx.DB, migrationsPath stri
 var _ URLRepository = (*PostgresRepository)(nil)
 
 func (r *PostgresRepository) Add(ctx context.Context, d *models.RepositoryAddRecord) (*models.RepositoryGetRecord, error) {
-	_, err := r.db.ExecContext(ctx, `INSERT INTO records (url, short_id) 
-										VALUES ($1, $2);`, d.URL, d.ShortID)
+	trx, err := r.db.BeginTxx(ctx, nil)
+	defer trx.Rollback()
+	if err != nil {
+		return nil, fmt.Errorf("start add trx: %w", err)
+	}
+	var lastID int
+	err = trx.QueryRowContext(ctx, `INSERT INTO records (url, short_id) 
+										VALUES ($1, $2) RETURNING id;`, d.URL, d.ShortID).Scan(&lastID)
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
 		row := r.db.QueryRowContext(ctx, "SELECT short_id FROM records WHERE url=$1;", d.URL)
@@ -55,6 +61,15 @@ func (r *PostgresRepository) Add(ctx context.Context, d *models.RepositoryAddRec
 		return models.NewRepositoryGetRecord(shortID), fmt.Errorf("%w", ErrAlreadyExists)
 	} else if err != nil {
 		return nil, fmt.Errorf("insert row into records: %w", err)
+	}
+	_, err = trx.ExecContext(ctx, `INSERT INTO users (uid, record_id)
+								   VALUES ($1, $2)`, d.UID, lastID)
+	if err != nil {
+		return nil, fmt.Errorf("insert into users: %w", err)
+	}
+	err = trx.Commit()
+	if err != nil {
+		return nil, fmt.Errorf("commit add: %w", err)
 	}
 	return models.NewRepositoryGetRecord(d.ShortID), nil
 }
@@ -109,8 +124,21 @@ func (r *PostgresRepository) Batch(ctx context.Context, batch *models.BatchServi
 	return response, nil
 }
 
-func (m *PostgresRepository) UserURLs(_ context.Context, uid string) ([]models.UserURLRecord, error) {
+func (r *PostgresRepository) UserURLs(ctx context.Context, uid string) ([]models.UserURLRecord, error) {
 	result := make([]models.UserURLRecord, 0)
-
+	row, err := r.db.QueryContext(ctx, `SELECT url, short_id FROM records
+										JOIN users ON records.id=users.record_id
+										WHERE users.uid=$1;`, uid)
+	if err != nil {
+		return nil, fmt.Errorf("select all urls for user: %w", err)
+	}
+	for row.Next() {
+		record := models.UserURLRecord{}
+		err := row.Scan(&record.URL, &record.ShortID)
+		if err != nil {
+			return nil, fmt.Errorf("scan user urls: %w", err)
+		}
+		result = append(result, record)
+	}
 	return result, nil
 }
