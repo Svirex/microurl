@@ -41,6 +41,7 @@ func CookieAuth(secretKey string) func(http.Handler) http.Handler {
 					response.WriteHeader(http.StatusUnauthorized)
 					return
 				}
+				http.SetCookie(response, jwtKey)
 			}
 			ctx := context.WithValue(request.Context(), JWTKey("uid"), uid)
 			next.ServeHTTP(response, request.WithContext(ctx))

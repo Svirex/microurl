@@ -2,6 +2,7 @@ package models
 
 type ServiceAddRecord struct {
 	URL string
+	UID string
 }
 
 type ServiceGetRecord struct {
@@ -16,9 +17,10 @@ type ServiceGetResult struct {
 	URL string
 }
 
-func NewServiceAddRecord(url string) *ServiceAddRecord {
+func NewServiceAddRecord(url string, uid string) *ServiceAddRecord {
 	return &ServiceAddRecord{
 		URL: url,
+		UID: uid,
 	}
 }
 

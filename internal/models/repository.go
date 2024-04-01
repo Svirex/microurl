@@ -19,10 +19,11 @@ type UserURLRecord struct {
 	ShortID string
 }
 
-func NewRepositoryAddRecord(shortID, url string) *RepositoryAddRecord {
+func NewRepositoryAddRecord(shortID, url, uid string) *RepositoryAddRecord {
 	return &RepositoryAddRecord{
 		ShortID: shortID,
 		URL:     url,
+		UID:     uid,
 	}
 }
 

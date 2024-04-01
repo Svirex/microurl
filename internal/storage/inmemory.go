@@ -20,7 +20,7 @@ type Record struct {
 type MapRepository struct {
 	data          map[ShortID]URL
 	urlsToShortID map[URL]ShortID
-	uidToRecords  map[UID]Record
+	uidToRecords  map[UID][]Record
 	mutex         sync.Mutex
 }
 
@@ -30,7 +30,7 @@ func NewMapRepository() *MapRepository {
 	return &MapRepository{
 		data:          make(map[ShortID]URL),
 		urlsToShortID: make(map[URL]ShortID),
-		uidToRecords:  make(map[UID]Record),
+		uidToRecords:  make(map[UID][]Record),
 	}
 }
 
@@ -75,10 +75,14 @@ func (m *MapRepository) Batch(_ context.Context, batch *models.BatchService) (*m
 
 func (m *MapRepository) UserURLs(_ context.Context, uid string) ([]models.UserURLRecord, error) {
 	result := make([]models.UserURLRecord, 0)
-	for i := range m.uidToRecords {
+	if _, ok := m.uidToRecords[UID(uid)]; !ok {
+		return result, nil
+	}
+	records := m.uidToRecords[UID(uid)]
+	for i := range records {
 		result = append(result, models.UserURLRecord{
-			ShortID: string(m.uidToRecords[i].shortID),
-			URL:     string(m.uidToRecords[i].url),
+			ShortID: string(records[i].shortID),
+			URL:     string(records[i].url),
 		})
 	}
 	return result, nil
@@ -87,8 +91,11 @@ func (m *MapRepository) UserURLs(_ context.Context, uid string) ([]models.UserUR
 func (m *MapRepository) addNewRecord(url URL, shortID ShortID, uid UID) {
 	m.data[shortID] = url
 	m.urlsToShortID[url] = shortID
-	m.uidToRecords[uid] = Record{
+	if _, ok := m.uidToRecords[uid]; !ok {
+		m.uidToRecords[uid] = make([]Record, 0)
+	}
+	m.uidToRecords[uid] = append(m.uidToRecords[uid], Record{
 		shortID: shortID,
 		url:     url,
-	}
+	})
 }

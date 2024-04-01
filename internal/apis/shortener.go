@@ -37,7 +37,11 @@ func (api *ShortenerAPI) Post(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	r.Body.Close()
-	serviceResult, err := api.shortenerService.Add(r.Context(), models.NewServiceAddRecord(string(url)))
+	uid, ok := r.Context().Value(appmiddleware.JWTKey("uid")).(string)
+	if !ok {
+		uid = ""
+	}
+	serviceResult, err := api.shortenerService.Add(r.Context(), models.NewServiceAddRecord(string(url), uid))
 	if err != nil && !errors.Is(err, storage.ErrAlreadyExists) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -84,7 +88,11 @@ func (api *ShortenerAPI) JSONShorten(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	serviceResult, err := api.shortenerService.Add(r.Context(), models.NewServiceAddRecord(inputJSON.URL))
+	uid, ok := r.Context().Value(appmiddleware.JWTKey("uid")).(string)
+	if !ok {
+		uid = ""
+	}
+	serviceResult, err := api.shortenerService.Add(r.Context(), models.NewServiceAddRecord(inputJSON.URL, uid))
 	if err != nil && !errors.Is(err, storage.ErrAlreadyExists) {
 		w.WriteHeader(http.StatusBadRequest)
 		return

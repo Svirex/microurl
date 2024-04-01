@@ -81,7 +81,7 @@ func restoreRepository(ctx context.Context, filename string, repository *MapRepo
 		return fmt.Errorf("restore data, read: %w", err)
 	}
 	for record != nil {
-		repository.Add(context.Background(), models.NewRepositoryAddRecord(record.ShortID, record.URL))
+		repository.Add(context.Background(), models.NewRepositoryAddRecord(record.ShortID, record.URL, ""))
 		record, err = reader.Read(ctx)
 		if err != nil && !errors.Is(err, io.EOF) {
 			return fmt.Errorf("restore data, while read: %w", err)
