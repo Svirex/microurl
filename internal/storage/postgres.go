@@ -133,8 +133,12 @@ func (r *PostgresRepository) UserURLs(ctx context.Context, uid string) ([]models
 		return nil, fmt.Errorf("select all urls for user: %w", err)
 	}
 	for row.Next() {
+		err := row.Err()
+		if err != nil {
+			return nil, fmt.Errorf("next user urls: %w", err)
+		}
 		record := models.UserURLRecord{}
-		err := row.Scan(&record.URL, &record.ShortID)
+		err = row.Scan(&record.URL, &record.ShortID)
 		if err != nil {
 			return nil, fmt.Errorf("scan user urls: %w", err)
 		}

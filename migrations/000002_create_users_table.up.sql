@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS
 public.users (
-    uid UUID PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
+    uid UUID NOT NULL,
     record_id INTEGER REFERENCES records(id)
 );
