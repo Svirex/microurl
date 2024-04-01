@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/Svirex/microurl/internal/logging"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
@@ -17,27 +18,32 @@ type Claims struct {
 
 type JWTKey string
 
-func CookieAuth(secretKey string) func(http.Handler) http.Handler {
+func CookieAuth(secretKey string, logger logging.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		fn := func(response http.ResponseWriter, request *http.Request) {
 			jwtKey, err := request.Cookie("jwt")
 			var uid string
 			if errors.Is(err, http.ErrNoCookie) {
+				logger.Info("not jwt in cookie")
 				uid, err = generateUserIDAndJWTAndSetCookie(secretKey, response)
 				if err != nil {
+					logger.Error("couldn't generate jwt 1", "err", err)
 					response.WriteHeader(http.StatusBadRequest)
 					return
 				}
 			} else {
 				uid, err = getUserID(secretKey, jwtKey.Value)
 				if err != nil { // если токен не проходит проверку на подлинность
+					logger.Error("jwt not valid", "err", err)
 					uid, err = generateUserIDAndJWTAndSetCookie(secretKey, response)
 					if err != nil {
+						logger.Error("couldn't generate jwt 2", "err", err)
 						response.WriteHeader(http.StatusBadRequest)
 						return
 					}
 				}
 				if uid == "" {
+					logger.Info("uid is empty")
 					response.WriteHeader(http.StatusUnauthorized)
 					return
 				}

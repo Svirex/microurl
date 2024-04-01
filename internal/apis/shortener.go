@@ -181,15 +181,18 @@ func (api *ShortenerAPI) GetAllUrls(response http.ResponseWriter, request *http.
 	var uid string
 	var ok bool
 	if uid, ok = request.Context().Value(appmiddleware.JWTKey("uid")).(string); !ok {
+		api.logger.Error("not uid in context")
 		response.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	result, err := api.shortenerService.UserURLs(request.Context(), uid)
 	if err != nil {
+		api.logger.Error("service get user urls", "err", err)
 		response.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	if len(result) == 0 {
+		api.logger.Info("not urls for user")
 		response.WriteHeader(http.StatusNoContent)
 		return
 	}
@@ -202,6 +205,7 @@ func (api *ShortenerAPI) GetAllUrls(response http.ResponseWriter, request *http.
 	}
 	body, err := json.Marshal(answer)
 	if err != nil {
+		api.logger.Error("couldn't marshal", "err", err)
 		response.WriteHeader(http.StatusNoContent)
 		return
 	}
@@ -216,7 +220,7 @@ func (api *ShortenerAPI) Routes(logger logging.Logger, secretKey string) chi.Rou
 	router.Use(appmiddleware.NewLoggingMiddleware(logger))
 	router.Use(appmiddleware.GzipHandler)
 	router.Use(middleware.Compress(5, "text/html", "application/json"))
-	router.Use(appmiddleware.CookieAuth(secretKey))
+	router.Use(appmiddleware.CookieAuth(secretKey, logger))
 
 	router.Get("/{shortID:[A-Za-z]+}", api.Get)
 	router.Post("/", api.Post)
