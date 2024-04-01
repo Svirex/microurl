@@ -6,6 +6,7 @@ type Record struct {
 	UUID    string `json:"uuid"`
 	ShortID string `json:"short_url"`
 	URL     string `json:"original_url"`
+	UID     string `json:"uid,omitempty"`
 }
 
 type BackupReader interface {

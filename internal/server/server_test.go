@@ -572,3 +572,99 @@ func TestUserURLsWithMapRepository(t *testing.T) {
 	}
 
 }
+
+func NewTestServerWithFileRepository(t *testing.T) *httptest.Server {
+	rep, err := storage.NewFileRepository(context.TODO(), "tt.txt")
+	require.NoError(t, err)
+	require.NotNil(t, rep)
+	service := services.NewShortenerService(generators.NewSimpleGenerator(255), rep, 8)
+	require.NotNil(t, service)
+	api := apis.NewShortenerAPI(service, NewMockDBCheck(nil), "http://svirex.ru")
+	require.NotNil(t, api)
+
+	secretKey := "fake_secret_key"
+
+	return httptest.NewServer(api.Routes(&FakeLogger{}, secretKey))
+}
+
+func TestUserURLsWithFileRepository(t *testing.T) {
+	testServer := NewTestServerWithFileRepository(t)
+	defer testServer.Close()
+
+	jar, err := cookiejar.New(nil)
+	require.NoError(t, err)
+
+	client := testServer.Client()
+	client.Jar = jar
+
+	urls := []string{
+		"http://ya.ru",
+		"http://svirex.ham",
+		"http://incognito.net",
+	}
+
+	shortURL := make([]string, 0, 3)
+
+	doRequestAndGetShortURLAndJWT := func(t *testing.T, client *http.Client, url string) (string, string) {
+		req, err := http.NewRequest(http.MethodPost, testServer.URL, bytes.NewBufferString(url))
+		require.NoError(t, err)
+		resp, err := client.Do(req)
+		require.NoError(t, err)
+
+		body, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		resp.Body.Close()
+		var jwt string
+		for i := range resp.Cookies() {
+			if resp.Cookies()[i].Name == "jwt" {
+				jwt = resp.Cookies()[i].Value
+			}
+
+		}
+		require.True(t, len(jwt) > 0)
+		return string(body), jwt
+	}
+
+	var jwt string
+
+	u, jwt := doRequestAndGetShortURLAndJWT(t, client, urls[0])
+
+	shortURL = append(shortURL, u)
+
+	u, jwt2 := doRequestAndGetShortURLAndJWT(t, client, urls[1])
+	require.Equal(t, jwt, jwt2)
+
+	shortURL = append(shortURL, u)
+
+	u, jwt2 = doRequestAndGetShortURLAndJWT(t, client, urls[2])
+	require.Equal(t, jwt, jwt2)
+
+	shortURL = append(shortURL, u)
+
+	req, err := http.NewRequest(http.MethodGet, testServer.URL+"/api/user/urls", nil)
+	require.NoError(t, err)
+
+	resp, err := client.Do(req)
+	require.NoError(t, err)
+
+	bodyJSON, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	resp.Body.Close()
+
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, "application/json", resp.Header.Get("Content-Type"))
+
+	var answerURLS []models.UserURL
+
+	err = json.Unmarshal(bodyJSON, &answerURLS)
+	require.NoError(t, err)
+
+	require.Len(t, answerURLS, 3)
+
+	for i := range answerURLS {
+		r := &answerURLS[i]
+		require.True(t, sliceContainsStr(urls, r.URL))
+		require.True(t, sliceContainsStr(shortURL, r.ShortURL))
+	}
+
+}
