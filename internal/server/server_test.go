@@ -431,14 +431,15 @@ func TestSetupAuthCookie(t *testing.T) {
 		require.NoError(t, err)
 		resp.Body.Close()
 
-		foundJWTCookie := false
-		for _, v := range resp.Cookies() {
-			if v.Name == "jwt" {
-				foundJWTCookie = true
-				break
-			}
-		}
-		require.True(t, foundJWTCookie)
+		// foundJWTCookie := false
+		// for _, v := range resp.Cookies() {
+		// 	if v.Name == "jwt" {
+		// 		foundJWTCookie = true
+		// 		break
+		// 	}
+		// }
+		// require.True(t, foundJWTCookie)
+		require.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	}
 	{ // Невалидный токен jwt
 		req, err := http.NewRequest(http.MethodGet, testServer.URL+"/api/user/urls", nil)

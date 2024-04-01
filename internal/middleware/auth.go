@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/Svirex/microurl/internal/logging"
 	"github.com/golang-jwt/jwt/v5"
@@ -25,11 +26,13 @@ func CookieAuth(secretKey string, logger logging.Logger) func(http.Handler) http
 			var uid string
 			if errors.Is(err, http.ErrNoCookie) {
 				logger.Info("not jwt in cookie")
-				uid, err = generateUserIDAndJWTAndSetCookie(secretKey, response)
-				if err != nil {
-					logger.Error("couldn't generate jwt 1", "err", err)
-					response.WriteHeader(http.StatusBadRequest)
-					return
+				if !strings.Contains(request.URL.Path, "api/user/urls") {
+					uid, err = generateUserIDAndJWTAndSetCookie(secretKey, response)
+					if err != nil {
+						logger.Error("couldn't generate jwt 1", "err", err)
+						response.WriteHeader(http.StatusBadRequest)
+						return
+					}
 				}
 			} else {
 				uid, err = getUserID(secretKey, jwtKey.Value)

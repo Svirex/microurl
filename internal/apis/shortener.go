@@ -180,9 +180,9 @@ func (api *ShortenerAPI) Batch(w http.ResponseWriter, r *http.Request) {
 func (api *ShortenerAPI) GetAllUrls(response http.ResponseWriter, request *http.Request) {
 	var uid string
 	var ok bool
-	if uid, ok = request.Context().Value(appmiddleware.JWTKey("uid")).(string); !ok {
+	if uid, ok = request.Context().Value(appmiddleware.JWTKey("uid")).(string); !ok || uid == "" {
 		api.logger.Error("not uid in context")
-		response.WriteHeader(http.StatusBadRequest)
+		response.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 	result, err := api.shortenerService.UserURLs(request.Context(), uid)
