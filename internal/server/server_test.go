@@ -59,7 +59,7 @@ func TestRouterPost(t *testing.T) {
 	require.NotNil(t, rep)
 	service := services.NewShortenerService(generators.NewSimpleGenerator(255), rep, 8)
 	require.NotNil(t, service)
-	api := apis.NewShortenerAPI(service, NewMockDBCheck(nil), "http://svirex.ru")
+	api := apis.NewShortenerAPI(service, NewMockDBCheck(nil), "http://svirex.ru", &FakeLogger{})
 	require.NotNil(t, api)
 
 	testServer := httptest.NewServer(api.Routes(&FakeLogger{}, "fake_secret_key"))
@@ -128,7 +128,7 @@ func (m *MockRepository) UserURLs(_ context.Context, uid string) ([]models.UserU
 func TestRouterPostWithMockRepo(t *testing.T) {
 	service := services.NewShortenerService(generators.NewSimpleGenerator(255), &MockRepository{}, 8)
 	require.NotNil(t, service)
-	api := apis.NewShortenerAPI(service, NewMockDBCheck(nil), "http://svirex.ru")
+	api := apis.NewShortenerAPI(service, NewMockDBCheck(nil), "http://svirex.ru", &FakeLogger{})
 	require.NotNil(t, api)
 
 	testServer := httptest.NewServer(api.Routes(&FakeLogger{}, "fake_secret_key"))
@@ -153,7 +153,7 @@ func TestServerGet(t *testing.T) {
 	require.NotNil(t, rep)
 	service := services.NewShortenerService(generators.NewSimpleGenerator(255), rep, 8)
 	require.NotNil(t, service)
-	api := apis.NewShortenerAPI(service, NewMockDBCheck(nil), "http://svirex.ru")
+	api := apis.NewShortenerAPI(service, NewMockDBCheck(nil), "http://svirex.ru", &FakeLogger{})
 	require.NotNil(t, api)
 
 	testServer := httptest.NewServer(api.Routes(&FakeLogger{}, "fake_secret_key"))
@@ -232,7 +232,7 @@ func TestServerJSONShorten(t *testing.T) {
 	require.NotNil(t, rep)
 	service := services.NewShortenerService(generators.NewSimpleGenerator(255), rep, 8)
 	require.NotNil(t, service)
-	api := apis.NewShortenerAPI(service, NewMockDBCheck(nil), "http://svirex.ru")
+	api := apis.NewShortenerAPI(service, NewMockDBCheck(nil), "http://svirex.ru", &FakeLogger{})
 	require.NotNil(t, api)
 
 	testServer := httptest.NewServer(api.Routes(&FakeLogger{}, "fake_secret_key"))
@@ -313,7 +313,7 @@ func TestServerPingOk(t *testing.T) {
 	require.NotNil(t, rep)
 	service := services.NewShortenerService(generators.NewSimpleGenerator(255), rep, 8)
 	require.NotNil(t, service)
-	api := apis.NewShortenerAPI(service, NewMockDBCheck(nil), "http://svirex.ru")
+	api := apis.NewShortenerAPI(service, NewMockDBCheck(nil), "http://svirex.ru", &FakeLogger{})
 	require.NotNil(t, api)
 
 	testServer := httptest.NewServer(api.Routes(&FakeLogger{}, "fake_secret_key"))
@@ -336,7 +336,7 @@ func TestServerPingFail(t *testing.T) {
 	require.NotNil(t, rep)
 	service := services.NewShortenerService(generators.NewSimpleGenerator(255), rep, 8)
 	require.NotNil(t, service)
-	api := apis.NewShortenerAPI(service, NewMockDBCheck(errors.New("OOPS!!!")), "http://svirex.ru")
+	api := apis.NewShortenerAPI(service, NewMockDBCheck(errors.New("OOPS!!!")), "http://svirex.ru", &FakeLogger{})
 	require.NotNil(t, api)
 
 	testServer := httptest.NewServer(api.Routes(&FakeLogger{}, "fake_secret_key"))
@@ -359,7 +359,7 @@ func TestBatch(t *testing.T) {
 	require.NotNil(t, rep)
 	service := services.NewShortenerService(generators.NewSimpleGenerator(255), rep, 8)
 	require.NotNil(t, service)
-	api := apis.NewShortenerAPI(service, NewMockDBCheck(errors.New("OOPS!!!")), "http://svirex.ru")
+	api := apis.NewShortenerAPI(service, NewMockDBCheck(errors.New("OOPS!!!")), "http://svirex.ru", &FakeLogger{})
 	require.NotNil(t, api)
 
 	testServer := httptest.NewServer(api.Routes(&FakeLogger{}, "fake_secret_key"))
@@ -402,7 +402,7 @@ func NewTestServerWithMapRepository(t *testing.T) *httptest.Server {
 	require.NotNil(t, rep)
 	service := services.NewShortenerService(generators.NewSimpleGenerator(255), rep, 8)
 	require.NotNil(t, service)
-	api := apis.NewShortenerAPI(service, NewMockDBCheck(nil), "http://svirex.ru")
+	api := apis.NewShortenerAPI(service, NewMockDBCheck(nil), "http://svirex.ru", &FakeLogger{})
 	require.NotNil(t, api)
 
 	secretKey := "fake_secret_key"
@@ -415,7 +415,7 @@ func TestSetupAuthCookie(t *testing.T) {
 	require.NotNil(t, rep)
 	service := services.NewShortenerService(generators.NewSimpleGenerator(255), rep, 8)
 	require.NotNil(t, service)
-	api := apis.NewShortenerAPI(service, NewMockDBCheck(nil), "http://svirex.ru")
+	api := apis.NewShortenerAPI(service, NewMockDBCheck(nil), "http://svirex.ru", &FakeLogger{})
 	require.NotNil(t, api)
 
 	secretKey := "fake_secret_key"
@@ -575,14 +575,14 @@ func TestUserURLsWithMapRepository(t *testing.T) {
 }
 
 func NewTestServerWithFileRepository(t *testing.T) *httptest.Server {
-	tmp_name := "tt.txt"
-	defer os.Remove(tmp_name)
-	rep, err := storage.NewFileRepository(context.TODO(), tmp_name)
+	tmpName := "tt.txt"
+	defer os.Remove(tmpName)
+	rep, err := storage.NewFileRepository(context.TODO(), tmpName)
 	require.NoError(t, err)
 	require.NotNil(t, rep)
 	service := services.NewShortenerService(generators.NewSimpleGenerator(255), rep, 8)
 	require.NotNil(t, service)
-	api := apis.NewShortenerAPI(service, NewMockDBCheck(nil), "http://svirex.ru")
+	api := apis.NewShortenerAPI(service, NewMockDBCheck(nil), "http://svirex.ru", &FakeLogger{})
 	require.NotNil(t, api)
 
 	secretKey := "fake_secret_key"

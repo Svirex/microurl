@@ -63,7 +63,7 @@ func main() {
 	defer dbCheckService.Shutdown()
 	logger.Info("Created DB check service...", "type=", fmt.Sprintf("%T", dbCheckService))
 
-	api := apis.NewShortenerAPI(service, dbCheckService, cfg.BaseURL)
+	api := apis.NewShortenerAPI(service, dbCheckService, cfg.BaseURL, logger)
 	handler := api.Routes(logger, cfg.SecretKey)
 
 	serverObj := server.NewServer(serverCtx, cfg.Addr, handler)

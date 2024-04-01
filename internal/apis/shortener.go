@@ -20,13 +20,15 @@ type ShortenerAPI struct {
 	shortenerService services.Shortener
 	BaseURL          string
 	pingService      services.DBCheck
+	logger           logging.Logger
 }
 
-func NewShortenerAPI(service services.Shortener, dbCheckService services.DBCheck, baseURL string) *ShortenerAPI {
+func NewShortenerAPI(service services.Shortener, dbCheckService services.DBCheck, baseURL string, logger logging.Logger) *ShortenerAPI {
 	return &ShortenerAPI{
 		shortenerService: service,
 		BaseURL:          baseURL,
 		pingService:      dbCheckService,
+		logger:           logger,
 	}
 }
 
@@ -73,11 +75,13 @@ func (api *ShortenerAPI) Get(w http.ResponseWriter, r *http.Request) {
 func (api *ShortenerAPI) JSONShorten(w http.ResponseWriter, r *http.Request) {
 	contentType := r.Header.Get("Content-Type")
 	if contentType != "application/json" {
+		api.logger.Error("haven't header application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	body, err := io.ReadAll(r.Body)
 	if err != nil || len(body) == 0 {
+		api.logger.Error("empty body", "err", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -85,6 +89,7 @@ func (api *ShortenerAPI) JSONShorten(w http.ResponseWriter, r *http.Request) {
 	var inputJSON models.InputJSON
 	err = json.Unmarshal(body, &inputJSON)
 	if err != nil {
+		api.logger.Error("couldn't unmarshal body", "err", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -94,6 +99,7 @@ func (api *ShortenerAPI) JSONShorten(w http.ResponseWriter, r *http.Request) {
 	}
 	serviceResult, err := api.shortenerService.Add(r.Context(), models.NewServiceAddRecord(inputJSON.URL, uid))
 	if err != nil && !errors.Is(err, storage.ErrAlreadyExists) {
+		api.logger.Error("service error", "err", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -106,6 +112,7 @@ func (api *ShortenerAPI) JSONShorten(w http.ResponseWriter, r *http.Request) {
 	}
 	body, err = json.Marshal(result)
 	if err != nil {
+		api.logger.Error("couldn't marshal", "err", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
