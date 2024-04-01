@@ -16,6 +16,7 @@ type Config struct {
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	PostgresDSN     string `env:"DATABASE_DSN"`
 	MigrationsPath  string `env:"MIGRATIONS_PATH"`
+	SecretKey       string `env:"SECRET_KEY"`
 }
 
 func ParseEnv() (*Config, error) {
@@ -37,6 +38,7 @@ func ParseFlags() (*Config, error) {
 	flag.StringVar(&cfg.FileStoragePath, "f", "/tmp/short-url-db.json", "file for save records")
 	flag.StringVar(&cfg.PostgresDSN, "d", "", "postgres DSN")
 	flag.StringVar(&cfg.MigrationsPath, "m", path.Join(strings.Replace(currentDir, "cmd/shortener", "", 1), "migrations"), "path to db migrations")
+	flag.StringVar(&cfg.SecretKey, "k", "fake_secret_key", "secret key for auth")
 	flag.Parse()
 	return cfg, nil
 }
@@ -84,6 +86,7 @@ func mergeConf(envCfg *Config, flagConfig *Config) *Config {
 		FileStoragePath: envCfg.FileStoragePath,
 		PostgresDSN:     envCfg.PostgresDSN,
 		MigrationsPath:  envCfg.MigrationsPath,
+		SecretKey:       envCfg.SecretKey,
 	}
 	if cfg.Addr == "" {
 		cfg.Addr = flagConfig.Addr
@@ -99,6 +102,9 @@ func mergeConf(envCfg *Config, flagConfig *Config) *Config {
 	}
 	if cfg.MigrationsPath == "" {
 		cfg.MigrationsPath = flagConfig.MigrationsPath
+	}
+	if cfg.SecretKey == "" {
+		cfg.SecretKey = flagConfig.SecretKey
 	}
 	return cfg
 }

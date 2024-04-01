@@ -395,6 +395,19 @@ func TestBatch(t *testing.T) {
 	}
 }
 
+func NewTestServerWithMapRepository(t *testing.T) *httptest.Server {
+	rep := storage.NewMapRepository()
+	require.NotNil(t, rep)
+	service := services.NewShortenerService(generators.NewSimpleGenerator(255), rep, 8)
+	require.NotNil(t, service)
+	api := apis.NewShortenerAPI(service, NewMockDBCheck(nil), "http://svirex.ru")
+	require.NotNil(t, api)
+
+	secretKey := "fake_secret_key"
+
+	return httptest.NewServer(api.Routes(&FakeLogger{}, secretKey))
+}
+
 func TestSetupAuthCookie(t *testing.T) {
 	rep := storage.NewMapRepository()
 	require.NotNil(t, rep)
@@ -466,4 +479,9 @@ func TestSetupAuthCookie(t *testing.T) {
 
 		require.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	}
+}
+
+func TestUserURLsWithMapRepository(t *testing.T) {
+	testServer := NewTestServerWithMapRepository()
+	defer testServer.Close()
 }
