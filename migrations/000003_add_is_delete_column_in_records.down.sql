@@ -1,3 +1,2 @@
-ALTER TABLE public.records {
-    DROP COLUMN is_deleted
-};
+ALTER TABLE public.records 
+DROP COLUMN is_deleted;
