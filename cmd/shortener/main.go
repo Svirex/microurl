@@ -63,7 +63,14 @@ func main() {
 	defer dbCheckService.Shutdown()
 	logger.Info("Created DB check service...", "type=", fmt.Sprintf("%T", dbCheckService))
 
-	api := apis.NewShortenerAPI(service, dbCheckService, cfg.BaseURL, logger)
+	deleter, err := services.NewDefaultDeleter(db, logger, 10)
+	if err != nil {
+		log.Fatalf("create deleter service: %#v", err)
+	}
+	deleter.Run()
+	defer deleter.Shutdown()
+
+	api := apis.NewShortenerAPI(service, dbCheckService, cfg.BaseURL, logger, deleter)
 	handler := api.Routes(logger, cfg.SecretKey)
 
 	serverObj := server.NewServer(serverCtx, cfg.Addr, handler)

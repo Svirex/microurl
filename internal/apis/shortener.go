@@ -21,14 +21,16 @@ type ShortenerAPI struct {
 	BaseURL          string
 	pingService      services.DBCheck
 	logger           logging.Logger
+	deleter          services.DeleterService
 }
 
-func NewShortenerAPI(service services.Shortener, dbCheckService services.DBCheck, baseURL string, logger logging.Logger) *ShortenerAPI {
+func NewShortenerAPI(service services.Shortener, dbCheckService services.DBCheck, baseURL string, logger logging.Logger, deleter services.DeleterService) *ShortenerAPI {
 	return &ShortenerAPI{
 		shortenerService: service,
 		BaseURL:          baseURL,
 		pingService:      dbCheckService,
 		logger:           logger,
+		deleter:          deleter,
 	}
 }
 
@@ -64,7 +66,11 @@ func (api *ShortenerAPI) Post(w http.ResponseWriter, r *http.Request) {
 func (api *ShortenerAPI) Get(w http.ResponseWriter, r *http.Request) {
 	shortID := chi.URLParam(r, "shortID")
 	serviceResult, err := api.shortenerService.Get(r.Context(), models.NewServiceGetRecord(shortID))
-	if err != nil {
+	if errors.Is(err, storage.ErrNotFound) {
+		w.WriteHeader(http.StatusGone)
+		return
+	} else if err != nil {
+		api.logger.Error("get url by short id", "err", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -213,6 +219,35 @@ func (api *ShortenerAPI) GetAllUrls(response http.ResponseWriter, request *http.
 	response.Write(body)
 }
 
+func (api *ShortenerAPI) DeleteUrls(response http.ResponseWriter, request *http.Request) {
+	var uid string
+	var ok bool
+	if uid, ok = request.Context().Value(appmiddleware.JWTKey("uid")).(string); !ok || uid == "" {
+		api.logger.Error("not uid in context")
+		response.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	contentType := request.Header.Get("Content-Type")
+	if contentType != "application/json" {
+		response.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	body, err := io.ReadAll(request.Body)
+	if err != nil || len(body) == 0 {
+		response.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	defer request.Body.Close()
+	var shortIDs []string
+	err = json.Unmarshal(body, &shortIDs)
+	if err != nil {
+		response.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	api.deleter.Process(request.Context(), uid, shortIDs)
+	response.WriteHeader(http.StatusAccepted)
+}
+
 func (api *ShortenerAPI) Routes(logger logging.Logger, secretKey string) chi.Router {
 	router := chi.NewRouter()
 
@@ -228,6 +263,7 @@ func (api *ShortenerAPI) Routes(logger logging.Logger, secretKey string) chi.Rou
 	router.Get("/ping", api.Ping)
 	router.Post("/api/shorten/batch", api.Batch)
 	router.Get("/api/user/urls", api.GetAllUrls)
+	router.Delete("/api/user/urls", api.DeleteUrls)
 
 	return router
 }
