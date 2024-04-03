@@ -75,7 +75,7 @@ func (r *PostgresRepository) Add(ctx context.Context, d *models.RepositoryAddRec
 }
 
 func (r *PostgresRepository) Get(ctx context.Context, d *models.RepositoryGetRecord) (*models.RepositoryGetResult, error) {
-	row := r.db.QueryRowContext(ctx, "SELECT url FROM records WHERE short_id=$1 AND is_deleted=false", d.ShortID)
+	row := r.db.QueryRowContext(ctx, "SELECT url FROM records WHERE short_id=$1 AND is_deleted=false;", d.ShortID)
 	var url string
 	err := row.Scan(&url)
 	if errors.Is(err, sql.ErrNoRows) {

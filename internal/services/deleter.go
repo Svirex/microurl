@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/Svirex/microurl/internal/logging"
 	"github.com/jmoiron/sqlx"
@@ -83,15 +84,33 @@ func (ds *DefaultDeleter) errorLogger() {
 
 func (ds *DefaultDeleter) dbWriter() {
 	batch := make([]*DeleteData, 0, ds.batchSize)
-	for data := range ds.fanInChan {
-		batch = append(batch, data)
-		if len(batch) == ds.batchSize {
+	ticker := time.NewTicker(time.Second)
+
+	clearBatch := func(batch []*DeleteData) []*DeleteData {
+		for i := range batch {
+			batch[i] = nil
+		}
+		return batch[:0]
+	}
+
+	for {
+		select {
+		case data, ok := <-ds.fanInChan:
+			if !ok {
+				ds.writeBatch(batch)
+				close(ds.dbErrorChan)
+				return
+			}
+			batch = append(batch, data)
+			if len(batch) == ds.batchSize {
+				ds.writeBatch(batch)
+				batch = clearBatch(batch)
+			}
+		case <-ticker.C:
 			ds.writeBatch(batch)
-			batch = make([]*DeleteData, 0, ds.batchSize)
+			batch = clearBatch(batch)
 		}
 	}
-	ds.writeBatch(batch)
-	close(ds.dbErrorChan)
 }
 
 func (ds *DefaultDeleter) writeBatch(batch []*DeleteData) {
