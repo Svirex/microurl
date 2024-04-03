@@ -135,7 +135,7 @@ func (ds *DefaultDeleter) writeBatch(batch []*DeleteData) {
 
 	_, err := ds.db.Exec(fmt.Sprintf(`UPDATE records SET is_deleted=true
 				FROM (
-					SELECT id FROM records
+					SELECT records.id FROM records
 					JOIN users ON records.id=users.record_id
 					WHERE users.uid IN (%s) AND records.short_id IN (%s)
 				) as d
