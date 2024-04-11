@@ -65,7 +65,6 @@ func (ds *DefaultDeleter) Shutdown() error {
 	ds.wg.Wait()
 	close(ds.fanInChan)
 	<-ds.mayShutdown
-	close(ds.errorChan)
 	return nil
 }
 
@@ -83,6 +82,7 @@ func (ds *DefaultDeleter) errorLogger() {
 	for err := range ds.errorChan {
 		ds.logger.Error("write batch err", "err", err)
 	}
+	close(ds.mayShutdown)
 }
 
 func (ds *DefaultDeleter) dbWriter() {
@@ -116,7 +116,7 @@ func (ds *DefaultDeleter) dbWriter() {
 		case data, ok := <-ds.fanInChan:
 			if !ok {
 				retryWriteBatch(batch)
-				close(ds.mayShutdown)
+				close(ds.errorChan)
 				return
 			}
 			batch = append(batch, data)
