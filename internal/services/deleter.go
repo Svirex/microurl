@@ -22,10 +22,11 @@ type DeleterService interface {
 }
 
 type DefaultDeleter struct {
-	wg        sync.WaitGroup
-	db        *sqlx.DB
-	logger    logging.Logger
-	batchSize int
+	wg          sync.WaitGroup
+	db          *sqlx.DB
+	logger      logging.Logger
+	batchSize   int
+	mayShutdown chan struct{}
 
 	errorChan chan error
 	fanInChan chan *DeleteData
@@ -62,7 +63,8 @@ func (ds *DefaultDeleter) Process(_ context.Context, uid string, shortIDs []stri
 func (ds *DefaultDeleter) Shutdown() error {
 	ds.wg.Wait()
 	close(ds.fanInChan)
-	<-ds.errorChan
+	<-ds.mayShutdown
+	close(ds.errorChan)
 	return nil
 }
 
@@ -113,7 +115,7 @@ func (ds *DefaultDeleter) dbWriter() {
 		case data, ok := <-ds.fanInChan:
 			if !ok {
 				retryWriteBatch(batch)
-				close(ds.errorChan)
+				close(ds.mayShutdown)
 				return
 			}
 			batch = append(batch, data)
