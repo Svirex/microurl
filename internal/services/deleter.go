@@ -27,17 +27,17 @@ type DefaultDeleter struct {
 	logger    logging.Logger
 	batchSize int
 
-	dbErrorChan chan error
-	fanInChan   chan *DeleteData
+	errorChan chan error
+	fanInChan chan *DeleteData
 }
 
 func NewDefaultDeleter(db *sqlx.DB, logger logging.Logger, batchSize int) (*DefaultDeleter, error) {
 	service := &DefaultDeleter{
-		db:          db,
-		logger:      logger,
-		batchSize:   batchSize,
-		dbErrorChan: make(chan error, 5),
-		fanInChan:   make(chan *DeleteData, batchSize),
+		db:        db,
+		logger:    logger,
+		batchSize: batchSize,
+		errorChan: make(chan error, 5),
+		fanInChan: make(chan *DeleteData, batchSize),
 	}
 	return service, nil
 }
@@ -62,7 +62,7 @@ func (ds *DefaultDeleter) Process(_ context.Context, uid string, shortIDs []stri
 func (ds *DefaultDeleter) Shutdown() error {
 	ds.wg.Wait()
 	close(ds.fanInChan)
-
+	<-ds.errorChan
 	return nil
 }
 
@@ -77,7 +77,7 @@ func (ds *DefaultDeleter) generator(uid string, shortIDs []string) {
 }
 
 func (ds *DefaultDeleter) errorLogger() {
-	for err := range ds.dbErrorChan {
+	for err := range ds.errorChan {
 		ds.logger.Error("write batch err", "err", err)
 	}
 }
@@ -93,27 +93,42 @@ func (ds *DefaultDeleter) dbWriter() {
 		return batch[:0]
 	}
 
+	retryWriteBatch := func(batch []*DeleteData) {
+		if len(batch) == 0 {
+			return
+		}
+		for {
+			err := ds.writeBatch(batch)
+			if err != nil {
+				ds.errorChan <- fmt.Errorf("couldnt write batch: %w", err)
+				time.Sleep(5 * time.Second)
+			} else {
+				return
+			}
+		}
+	}
+
 	for {
 		select {
 		case data, ok := <-ds.fanInChan:
 			if !ok {
-				ds.writeBatch(batch)
-				close(ds.dbErrorChan)
+				retryWriteBatch(batch)
+				close(ds.errorChan)
 				return
 			}
 			batch = append(batch, data)
 			if len(batch) == ds.batchSize {
-				ds.writeBatch(batch)
+				retryWriteBatch(batch)
 				batch = clearBatch(batch)
 			}
 		case <-ticker.C:
-			ds.writeBatch(batch)
+			retryWriteBatch(batch)
 			batch = clearBatch(batch)
 		}
 	}
 }
 
-func (ds *DefaultDeleter) writeBatch(batch []*DeleteData) {
+func (ds *DefaultDeleter) writeBatch(batch []*DeleteData) error {
 	uids := make([]string, 0)
 	shortIDs := make([]string, 0)
 	for _, v := range batch {
@@ -160,6 +175,9 @@ func (ds *DefaultDeleter) writeBatch(batch []*DeleteData) {
 				) as d
 				WHERE records.id=d.id;`, uidsPlacement, shortIDsPlacement), values...)
 	if err != nil {
-		ds.dbErrorChan <- fmt.Errorf("update is_deleted: %w", err)
+		e := fmt.Errorf("error update is_deleted: %w", err)
+		ds.errorChan <- e
+		return e
 	}
+	return nil
 }
