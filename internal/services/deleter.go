@@ -34,11 +34,12 @@ type DefaultDeleter struct {
 
 func NewDefaultDeleter(db *sqlx.DB, logger logging.Logger, batchSize int) (*DefaultDeleter, error) {
 	service := &DefaultDeleter{
-		db:        db,
-		logger:    logger,
-		batchSize: batchSize,
-		errorChan: make(chan error, 5),
-		fanInChan: make(chan *DeleteData, batchSize),
+		db:          db,
+		logger:      logger,
+		batchSize:   batchSize,
+		errorChan:   make(chan error, 5),
+		fanInChan:   make(chan *DeleteData, batchSize),
+		mayShutdown: make(chan struct{}),
 	}
 	return service, nil
 }
