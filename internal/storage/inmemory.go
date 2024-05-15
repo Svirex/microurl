@@ -1,92 +1,101 @@
 package storage
 
 import (
-	"errors"
+	"context"
 	"fmt"
-	"io"
 	"sync"
 
-	bck "github.com/Svirex/microurl/internal/backup"
-	"github.com/Svirex/microurl/internal/pkg/backup"
-	"github.com/Svirex/microurl/internal/pkg/models"
-	"github.com/Svirex/microurl/internal/pkg/repositories"
-	"github.com/google/uuid"
+	"github.com/Svirex/microurl/internal/models"
 )
 
+type ShortID string
+type URL string
+type UID string
+
+type Record struct {
+	shortID ShortID
+	url     URL
+}
+
 type MapRepository struct {
-	data         map[string]string
-	mutex        sync.Mutex
-	backupWriter backup.BackupWriter
+	data          map[ShortID]URL
+	urlsToShortID map[URL]ShortID
+	uidToRecords  map[UID][]Record
+	mutex         sync.Mutex
 }
 
-var _ repositories.Repository = (*MapRepository)(nil)
+var _ URLRepository = (*MapRepository)(nil)
 
-func (m *MapRepository) Add(d *models.RepositoryAddRecord) error {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	m.data[d.ShortID] = d.URL
-	return m.backup(d)
+func NewMapRepository() *MapRepository {
+	return &MapRepository{
+		data:          make(map[ShortID]URL),
+		urlsToShortID: make(map[URL]ShortID),
+		uidToRecords:  make(map[UID][]Record),
+	}
 }
 
-func (m *MapRepository) Get(d *models.RepositoryGetRecord) (*models.RepositoryGetResult, error) {
+func (m *MapRepository) Add(ctx context.Context, d *models.RepositoryAddRecord) (*models.RepositoryGetRecord, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	u, ok := m.data[d.ShortID]
+	if shortID, exist := m.urlsToShortID[URL(d.URL)]; exist {
+		return models.NewRepositoryGetRecord(string(shortID)), fmt.Errorf("add record map repository: %w", ErrAlreadyExists)
+	} else {
+		m.addNewRecord(URL(d.URL), ShortID(d.ShortID), UID(d.UID))
+		return models.NewRepositoryGetRecord(d.ShortID), nil
+	}
+}
+
+func (m *MapRepository) Get(ctx context.Context, d *models.RepositoryGetRecord) (*models.RepositoryGetResult, error) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	u, ok := m.data[ShortID(d.ShortID)]
 	if !ok {
 		return nil, fmt.Errorf("not found url for %s", d.ShortID)
 	}
-	return models.NewRepositoryGetResult(u), nil
+	return models.NewRepositoryGetResult(string(u)), nil
 }
 
-func NewMapRepository(filename string) (repositories.Repository, error) {
-	repository := &MapRepository{
-		data: make(map[string]string),
-	}
-	var backupWriter backup.BackupWriter
-	if filename != "" {
-		err := restoreRepository(filename, repository)
-		if err != nil {
-			return nil, err
-		}
-		backupWriter, err = bck.NewFileBackupWriter(filename)
-		if err != nil {
-			return nil, err
-		}
-	}
-	repository.backupWriter = backupWriter
-	return repository, nil
-}
-func restoreRepository(filename string, repository repositories.Repository) error {
-	if filename == "" {
-		return errors.New("filename is empty")
-	}
-	reader, err := bck.NewFileBackupReader(filename)
-	if err != nil {
-		return err
-	}
-	defer reader.Close()
-	record, err := reader.Read()
-	if err != nil && !errors.Is(err, io.EOF) {
-		return err
-	}
-	for record != nil {
-		repository.Add(models.NewRepositoryAddRecord(record.ShortID, record.URL))
-		record, err = reader.Read()
-		if err != nil && !errors.Is(err, io.EOF) {
-			return err
-		}
-	}
+func (m *MapRepository) Shutdown() error {
 	return nil
 }
 
-func (m *MapRepository) backup(d *models.RepositoryAddRecord) error {
-	if m.backupWriter == nil {
-		return nil
+func (m *MapRepository) Batch(_ context.Context, batch *models.BatchService) (*models.BatchResponse, error) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	response := &models.BatchResponse{
+		Records: make([]models.BatchResponseRecord, len(batch.Records)),
 	}
-	record := &backup.Record{
-		UUID:    uuid.New().String(),
-		ShortID: d.ShortID,
-		URL:     d.URL,
+	for i := range batch.Records {
+		m.data[ShortID(batch.Records[i].ShortURL)] = URL(batch.Records[i].URL)
+		response.Records[i].CorrID = batch.Records[i].CorrID
+		response.Records[i].ShortURL = batch.Records[i].ShortURL
 	}
-	return m.backupWriter.Write(record)
+	return response, nil
+}
+
+func (m *MapRepository) UserURLs(_ context.Context, uid string) ([]models.UserURLRecord, error) {
+	result := make([]models.UserURLRecord, 0)
+	if _, ok := m.uidToRecords[UID(uid)]; !ok {
+		return result, nil
+	}
+	records := m.uidToRecords[UID(uid)]
+	for i := range records {
+		result = append(result, models.UserURLRecord{
+			ShortID: string(records[i].shortID),
+			URL:     string(records[i].url),
+		})
+	}
+	return result, nil
+}
+
+func (m *MapRepository) addNewRecord(url URL, shortID ShortID, uid UID) {
+	m.data[shortID] = url
+	m.urlsToShortID[url] = shortID
+	if _, ok := m.uidToRecords[uid]; !ok {
+		m.uidToRecords[uid] = make([]Record, 0)
+	}
+	m.uidToRecords[uid] = append(m.uidToRecords[uid], Record{
+		shortID: shortID,
+		url:     url,
+	})
 }
