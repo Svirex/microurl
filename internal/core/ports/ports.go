@@ -30,3 +30,12 @@ type ShortenerRepository interface {
 	UserURLs(ctx context.Context, uid domain.UID) ([]domain.URLData, error)
 	Shutdown() error
 }
+
+type BackupWriter interface {
+	Write(ctx context.Context, record *domain.BackupRecord) error
+}
+
+type BackupReader interface {
+	Next() bool
+	Read(ctx context.Context) (*domain.BackupRecord, error)
+}

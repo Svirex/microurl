@@ -64,8 +64,13 @@ func (m *ShortenerRepository) Shutdown() error {
 	return nil
 }
 
+func (m *ShortenerRepository) CheckExists(url domain.URL) (domain.ShortID, bool) {
+	shortID, exist := m.urlsToShortID[url]
+	return shortID, exist
+}
+
 func (m *ShortenerRepository) addNewOrGetExistShortID(shortID domain.ShortID, url domain.URL, uid domain.UID) (domain.ShortID, error) {
-	if mapShortID, exist := m.urlsToShortID[url]; exist {
+	if mapShortID, exist := m.CheckExists(url); exist {
 		return mapShortID, fmt.Errorf("add new or get exist short id: %w", ports.ErrAlreadyExists)
 	} else {
 		m.addNewRecord(shortID, url, uid)
