@@ -36,9 +36,7 @@ func (repo *ShortenerRepository) Add(ctx context.Context, shortID domain.ShortID
 		URL:     data.URL,
 		UID:     data.UID,
 	}
-	repo.mutex.Lock()
-	defer repo.mutex.Unlock()
-	err := repo.writer.Write(ctx, backupRecord)
+	err := repo.writeToFile(backupRecord)
 	if err != nil {
 		return domain.ShortID(""), fmt.Errorf("file repository, add, write to file: %w", err)
 	}
@@ -50,4 +48,47 @@ func (repo *ShortenerRepository) writeToFile(record *domain.BackupRecord) error 
 	repo.mutex.Lock()
 	defer repo.mutex.Unlock()
 	return repo.writer.Write(context.Background(), record)
+}
+
+func (repo *ShortenerRepository) Get(ctx context.Context, shortID domain.ShortID) (domain.URL, error) {
+	return repo.repo.Get(ctx, shortID)
+}
+
+func (repo *ShortenerRepository) Batch(ctx context.Context, uid domain.UID, data []domain.BatchRecord) ([]domain.BatchRecord, error) {
+	backupRecords := make([]domain.BackupRecord, 0, len(data))
+	for i := range data {
+		record := &data[i]
+		backupRecords = append(backupRecords, domain.BackupRecord{
+			UUID:    uuid.New().String(),
+			ShortID: record.ShortID,
+			URL:     record.URL,
+			UID:     uid,
+		})
+	}
+	err := repo.writeBatchToFile(backupRecords)
+	if err != nil {
+		return nil, fmt.Errorf("file repository, batch, write to file: %w", err)
+	}
+	return repo.repo.Batch(ctx, uid, data)
+}
+
+func (repo *ShortenerRepository) writeBatchToFile(data []domain.BackupRecord) error {
+	repo.mutex.Lock()
+	defer repo.mutex.Unlock()
+	for i := range data {
+		record := &data[i]
+		err := repo.writer.Write(context.Background(), record)
+		if err != nil {
+			return fmt.Errorf("write batch to file: %w", err)
+		}
+	}
+	return nil
+}
+
+func (repo *ShortenerRepository) UserURLs(ctx context.Context, uid domain.UID) ([]domain.URLData, error) {
+	return repo.repo.UserURLs(ctx, uid)
+}
+
+func (repo *ShortenerRepository) Shutdown() error {
+	return nil
 }
