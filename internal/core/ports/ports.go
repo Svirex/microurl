@@ -12,9 +12,9 @@ var ErrNotFound = errors.New("not found")
 
 type ShortenerService interface {
 	Add(context.Context, *domain.Record) (domain.ShortURL, error)
-	Get(context.Context, *domain.Record) (*domain.Record, error)
-	Batch(context.Context, []domain.BatchRecord) ([]domain.BatchRecord, error)
-	UserURLs(context.Context, string) ([]domain.URLData, error)
+	Get(ctx context.Context, shortID domain.ShortID) (domain.URL, error)
+	Batch(ctx context.Context, uid domain.UID, data []domain.BatchRecord) ([]domain.BatchRecord, error)
+	UserURLs(ctx context.Context, uid domain.UID) ([]domain.URLData, error)
 	Shutdown() error
 }
 
@@ -38,4 +38,8 @@ type BackupWriter interface {
 type BackupReader interface {
 	Next() bool
 	Read(ctx context.Context) (*domain.BackupRecord, error)
+}
+
+type StringGenerator interface {
+	Generate(ctx context.Context, size uint) string
 }
