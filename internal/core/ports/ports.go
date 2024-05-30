@@ -38,6 +38,7 @@ type BackupWriter interface {
 type BackupReader interface {
 	Next() bool
 	Read(ctx context.Context) (*domain.BackupRecord, error)
+	Restore(ctx context.Context, repo ShortenerRepository) error
 }
 
 type StringGenerator interface {

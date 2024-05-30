@@ -3,6 +3,7 @@ package filebackup
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -37,6 +38,24 @@ func (reader *FileBackupReader) Read(ctx context.Context) (*domain.BackupRecord,
 		return record, nil
 	}
 	return nil, io.EOF
+}
+
+func (reader *FileBackupReader) Restore(ctx context.Context, repo ports.ShortenerRepository) error {
+	record, err := reader.Read(ctx)
+	if err != nil && !errors.Is(err, io.EOF) {
+		return fmt.Errorf("restore data, read: %w", err)
+	}
+	for record != nil {
+		repo.Add(context.Background(), record.ShortID, &domain.Record{
+			UID: record.UID,
+			URL: record.URL,
+		})
+		record, err = reader.Read(ctx)
+		if err != nil && !errors.Is(err, io.EOF) {
+			return fmt.Errorf("restore data, while read: %w", err)
+		}
+	}
+	return nil
 }
 
 type FileBackupWriter struct {
