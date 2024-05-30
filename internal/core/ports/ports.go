@@ -43,3 +43,17 @@ type BackupReader interface {
 type StringGenerator interface {
 	Generate(ctx context.Context, size uint) string
 }
+
+type DeleterService interface {
+	Process(ctx context.Context, uid string, shortIDs []string)
+	Run() error
+	Shutdown() error
+}
+
+type DeleterRepository interface {
+	Delete(ctx context.Context, batch []*domain.DeleteData) error
+}
+
+type DBCheck interface {
+	Ping(context.Context) error
+}

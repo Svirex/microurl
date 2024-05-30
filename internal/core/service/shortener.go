@@ -52,11 +52,25 @@ func (s *ShortenerService) Batch(ctx context.Context, uid domain.UID, data []dom
 	for i := range data {
 		data[i].ShortID = domain.ShortID(s.shortIDGenerator.Generate(ctx, s.shortIDSize))
 	}
-	return s.repository.Batch(ctx, uid, data)
+	data, err := s.repository.Batch(ctx, uid, data)
+	if err != nil {
+		return nil, fmt.Errorf("shortener service, batch: %w", err)
+	}
+	for i := range data {
+		data[i].ShortURL = domain.URL(s.shortURL(data[i].ShortID))
+	}
+	return data, nil
 }
 
 func (s *ShortenerService) UserURLs(ctx context.Context, uid domain.UID) ([]domain.URLData, error) {
-	return s.repository.UserURLs(ctx, uid)
+	data, err := s.repository.UserURLs(ctx, uid)
+	if err != nil {
+		return nil, fmt.Errorf("shortener service, user url: %w", err)
+	}
+	for i := range data {
+		data[i].ShortURL = domain.URL(s.shortURL(data[i].ShortID))
+	}
+	return data, nil
 }
 
 func (s *ShortenerService) Shutdown() error {

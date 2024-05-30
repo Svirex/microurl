@@ -1,4 +1,4 @@
-package middleware
+package api
 
 import (
 	"compress/gzip"
@@ -10,7 +10,7 @@ func checkContentEncoding(request *http.Request) bool {
 	return strings.Contains(request.Header.Get("Content-Encoding"), "gzip")
 }
 
-func GzipHandler(next http.Handler) http.Handler {
+func (a *API) gzipHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		if checkContentEncoding(request) {
 			gz, err := gzip.NewReader(request.Body)

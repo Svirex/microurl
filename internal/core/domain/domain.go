@@ -29,3 +29,8 @@ type BackupRecord struct {
 	URL     URL     `json:"original_url"`
 	UID     UID     `json:"uid,omitempty"`
 }
+
+type DeleteData struct {
+	UID     string
+	ShortID string
+}
