@@ -13,6 +13,7 @@ import (
 
 	"github.com/Svirex/microurl/internal/adapters/api"
 	"github.com/Svirex/microurl/internal/adapters/generator"
+	"github.com/Svirex/microurl/internal/adapters/repository/inmemory"
 	repo "github.com/Svirex/microurl/internal/adapters/repository/postgres"
 	"github.com/Svirex/microurl/internal/config"
 	"github.com/Svirex/microurl/internal/core/ports"
@@ -56,6 +57,9 @@ func main() {
 	serverCtx, serverCancel := context.WithCancel(context.Background())
 
 	var db *pgxpool.Pool
+	var repository ports.ShortenerRepository
+	var deleterRepo ports.DeleterRepository
+	var deleter ports.DeleterService
 	if cfg.PostgresDSN != "" {
 		logger.Info("Try create DB connection...")
 		db, err = pgxpool.New(serverCtx, cfg.PostgresDSN)
@@ -66,10 +70,20 @@ func main() {
 		defer db.Close()
 
 		migrationUp(db, logger, cfg.MigrationsPath)
+		repository = repo.NewPostgresRepository(db, logger)
+		defer repository.Shutdown()
+
+		deleterRepo = repo.NewDeleterRepository(db, logger)
+		deleter, err = service.NewDeleter(deleterRepo, logger, 10)
+		if err != nil {
+			log.Fatalf("create deleter service: %#v", err)
+		}
+		deleter.Run()
+		defer deleter.Shutdown()
+	} else {
+		repository = inmemory.NewShortenerRepository()
 	}
 
-	repository := repo.NewPostgresRepository(db, logger)
-	defer repository.Shutdown()
 	logger.Infoln("Created repository...", "type=", fmt.Sprintf("%T", repository))
 
 	shortenerService := service.NewShortenerService(generator, repository, shortURLLength, cfg.BaseURL)
@@ -78,15 +92,6 @@ func main() {
 
 	dbCheckService := service.NewDBCheck(db, cfg)
 	logger.Info("Created DB check service...", "type=", fmt.Sprintf("%T", dbCheckService))
-
-	deleterRepo := repo.NewDeleterRepository(db, logger)
-
-	deleter, err := service.NewDeleter(deleterRepo, logger, 10)
-	if err != nil {
-		log.Fatalf("create deleter service: %#v", err)
-	}
-	deleter.Run()
-	defer deleter.Shutdown()
 
 	serviceAPI := api.NewAPI(shortenerService, dbCheckService, logger, deleter, cfg.SecretKey)
 	handler := serviceAPI.Routes()

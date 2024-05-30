@@ -26,7 +26,7 @@ func (w *loggingResponseWriter) WriteHeader(statusCode int) {
 	w.responseData.status = statusCode
 }
 
-func (a *API) loggingMiddleware(next http.Handler) http.Handler {
+func (api *API) loggingMiddleware(next http.Handler) http.Handler {
 	fn := func(writer http.ResponseWriter, request *http.Request) {
 		start := time.Now()
 
@@ -44,8 +44,8 @@ func (a *API) loggingMiddleware(next http.Handler) http.Handler {
 
 		duration := time.Since(start)
 
-		if a.logger != nil {
-			a.logger.Infoln(
+		if api.logger != nil {
+			api.logger.Infoln(
 				"uri", request.RequestURI,
 				"method", request.Method,
 				"status", responseData.status, // получаем перехваченный код статуса ответа

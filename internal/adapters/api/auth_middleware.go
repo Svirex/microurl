@@ -18,33 +18,33 @@ type Claims struct {
 
 type JWTKey string
 
-func (a *API) cookieAuth(next http.Handler) http.Handler {
+func (api *API) cookieAuth(next http.Handler) http.Handler {
 	fn := func(response http.ResponseWriter, request *http.Request) {
 		jwtKey, err := request.Cookie("jwt")
 		var uid string
 		if errors.Is(err, http.ErrNoCookie) {
-			a.logger.Infoln("cookie auth middleware, not jwt in cookie")
+			api.logger.Infoln("cookie auth middleware, not jwt in cookie")
 			if !strings.Contains(request.URL.Path, "api/user/urls") {
-				uid, err = generateUserIDAndJWTAndSetCookie(a.secretKey, response)
+				uid, err = generateUserIDAndJWTAndSetCookie(api.secretKey, response)
 				if err != nil {
-					a.logger.Errorln("cookie auth middleware, couldn't generate jwt, empty cookie: ", err)
+					api.logger.Errorln("cookie auth middleware, couldn't generate jwt, empty cookie: ", err)
 					response.WriteHeader(http.StatusBadRequest)
 					return
 				}
 			}
 		} else {
-			uid, err = getUserID(a.secretKey, jwtKey.Value)
+			uid, err = getUserID(api.secretKey, jwtKey.Value)
 			if err != nil { // если токен не проходит проверку на подлинность
-				a.logger.Errorln("cookie auth middleware, jwt not valid", err)
-				uid, err = generateUserIDAndJWTAndSetCookie(a.secretKey, response)
+				api.logger.Errorln("cookie auth middleware, jwt not valid", err)
+				uid, err = generateUserIDAndJWTAndSetCookie(api.secretKey, response)
 				if err != nil {
-					a.logger.Errorln("cookie auth middleware, couldn't generate jwt, cookie exist: ", err)
+					api.logger.Errorln("cookie auth middleware, couldn't generate jwt, cookie exist: ", err)
 					response.WriteHeader(http.StatusBadRequest)
 					return
 				}
 			}
 			if uid == "" {
-				a.logger.Infoln("cookie auth middleware, uid is empty")
+				api.logger.Infoln("cookie auth middleware, uid is empty")
 				response.WriteHeader(http.StatusUnauthorized)
 				return
 			}
