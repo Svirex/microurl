@@ -1,9 +1,11 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 
 	"github.com/Svirex/microurl/internal/core/domain"
@@ -33,6 +35,14 @@ func NewAPI(
 		logger:    logger,
 		deleter:   deleter,
 		secretKey: secretKey,
+	}
+}
+
+func NewServer(ctx context.Context, addr string, handler http.Handler) *http.Server {
+	return &http.Server{
+		Addr:        addr,
+		Handler:     handler,
+		BaseContext: func(net.Listener) context.Context { return ctx },
 	}
 }
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,15 +11,19 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Svirex/microurl/internal/apis"
+	"github.com/Svirex/microurl/internal/adapters/api"
+	"github.com/Svirex/microurl/internal/adapters/generator"
+	repo "github.com/Svirex/microurl/internal/adapters/repository/postgres"
 	"github.com/Svirex/microurl/internal/config"
-	"github.com/Svirex/microurl/internal/generators"
-	"github.com/Svirex/microurl/internal/logging"
-	"github.com/Svirex/microurl/internal/server"
-	"github.com/Svirex/microurl/internal/services"
-	"github.com/Svirex/microurl/internal/storage"
-	_ "github.com/jackc/pgx/v5/stdlib"
-	"github.com/jmoiron/sqlx"
+	"github.com/Svirex/microurl/internal/core/ports"
+	"github.com/Svirex/microurl/internal/core/service"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 const shortURLLength uint = 8
@@ -29,51 +34,64 @@ func main() {
 		log.Fatal(err)
 	}
 
-	logger, err := logging.NewDefaultLogger()
-	if err != nil {
-		panic(err)
+	config := zap.Config{
+		Level:            zap.NewAtomicLevelAt(zapcore.DebugLevel),
+		Development:      true,
+		Encoding:         "json",
+		EncoderConfig:    zap.NewProductionEncoderConfig(),
+		OutputPaths:      []string{"stdout"},
+		ErrorOutputPaths: []string{"stderr"},
 	}
-	defer logger.Shutdown()
 
-	generator := generators.NewSimpleGenerator(time.Now().UnixNano())
+	l, err := config.Build()
+	if err != nil {
+		log.Fatalf("couldn't init zap logger")
+	}
+	logger := ports.Logger(l.Sugar())
+	defer logger.Sync()
+
+	generator := generator.NewStringGenerator(time.Now().UnixNano())
 	logger.Info("Created generator...")
 
-	var db *sqlx.DB
+	serverCtx, serverCancel := context.WithCancel(context.Background())
+
+	var db *pgxpool.Pool
 	if cfg.PostgresDSN != "" {
 		logger.Info("Try create DB connection...")
-		db = sqlx.MustConnect("pgx", cfg.PostgresDSN)
+		db, err = pgxpool.New(serverCtx, cfg.PostgresDSN)
+		if err != nil {
+			logger.Fatalln("DB connection error", "err", err)
+		}
 		logger.Info("DB connection success...")
 		defer db.Close()
 	}
 
-	serverCtx, serverCancel := context.WithCancel(context.Background())
+	migrationUp(db, logger, cfg.MigrationsPath)
 
-	repository, err := storage.NewRepository(serverCtx, cfg, db)
-	if err != nil {
-		log.Fatalf("create repository: %#v", err)
-	}
+	repository := repo.NewPostgresRepository(db, logger)
 	defer repository.Shutdown()
-	logger.Info("Created repository...", "type=", fmt.Sprintf("%T", repository))
+	logger.Infoln("Created repository...", "type=", fmt.Sprintf("%T", repository))
 
-	service := services.NewShortenerService(generator, repository, shortURLLength)
-	defer service.Shutdown()
+	shortenerService := service.NewShortenerService(generator, repository, shortURLLength, cfg.BaseURL)
+	defer shortenerService.Shutdown()
 	logger.Info("Created shorten service...")
 
-	dbCheckService := services.NewDBCheck(db, cfg)
-	defer dbCheckService.Shutdown()
+	dbCheckService := service.NewDBCheck(db, cfg)
 	logger.Info("Created DB check service...", "type=", fmt.Sprintf("%T", dbCheckService))
 
-	deleter, err := services.NewDefaultDeleter(db, logger, 10)
+	deleterRepo := repo.NewDeleterRepository(db, logger)
+
+	deleter, err := service.NewDeleter(deleterRepo, logger, 10)
 	if err != nil {
 		log.Fatalf("create deleter service: %#v", err)
 	}
 	deleter.Run()
 	defer deleter.Shutdown()
 
-	api := apis.NewShortenerAPI(service, dbCheckService, cfg.BaseURL, logger, deleter)
-	handler := api.Routes(logger, cfg.SecretKey)
+	serviceAPI := api.NewAPI(shortenerService, dbCheckService, logger, deleter, cfg.SecretKey)
+	handler := serviceAPI.Routes()
 
-	serverObj := server.NewServer(serverCtx, cfg.Addr, handler)
+	serverObj := api.NewServer(serverCtx, cfg.Addr, handler)
 
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
@@ -110,4 +128,32 @@ func main() {
 	}
 
 	<-serverCtx.Done()
+}
+
+func migrationUp(dbpool *pgxpool.Pool, logger ports.Logger, migrationsPath string) {
+	db := stdlib.OpenDBFromPool(dbpool)
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	if err != nil {
+		logger.Fatalf("create instance db for migrate: %v", "err", err)
+	}
+	migration, err := migrate.NewWithDatabaseInstance(
+		"file://"+migrationsPath, "postgres", driver)
+	if err != nil {
+		logger.Fatalf("create migrate: %v", "err", err)
+	}
+
+	version, dirty, err := migration.Version()
+	if err != nil && !errors.Is(err, migrate.ErrNilVersion) {
+		logger.Fatalf("migration version error ", "err=", err)
+	}
+	if dirty {
+		err = migration.Force(int(version))
+		if err != nil {
+			logger.Fatalf("migration force error ", "err=", err)
+		}
+	}
+	err = migration.Up()
+	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
+		logger.Fatalf("migration up error ", "err=", err)
+	}
 }

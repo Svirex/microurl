@@ -21,7 +21,7 @@ type DeleterService struct {
 	fanInChan chan *domain.DeleteData
 }
 
-func NewDefaultDeleter(repo ports.DeleterRepository, logger ports.Logger, batchSize int) (*DeleterService, error) {
+func NewDeleter(repo ports.DeleterRepository, logger ports.Logger, batchSize int) (*DeleterService, error) {
 	service := &DeleterService{
 		repo:        repo,
 		logger:      logger,
