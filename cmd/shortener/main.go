@@ -64,9 +64,9 @@ func main() {
 		}
 		logger.Info("DB connection success...")
 		defer db.Close()
-	}
 
-	migrationUp(db, logger, cfg.MigrationsPath)
+		migrationUp(db, logger, cfg.MigrationsPath)
+	}
 
 	repository := repo.NewPostgresRepository(db, logger)
 	defer repository.Shutdown()
