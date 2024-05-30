@@ -46,22 +46,22 @@ func NewServer(ctx context.Context, addr string, handler http.Handler) *http.Ser
 	}
 }
 
-func (a *API) Routes() chi.Router {
+func (api *API) Routes() chi.Router {
 	router := chi.NewRouter()
 
 	router.Use(middleware.Recoverer)
-	router.Use(a.loggingMiddleware)
-	router.Use(a.gzipHandler)
+	router.Use(api.loggingMiddleware)
+	router.Use(api.gzipHandler)
 	router.Use(middleware.Compress(5, "text/html", "application/json"))
-	router.Use(a.cookieAuth)
+	router.Use(api.cookieAuth)
 
-	router.Get("/{shortID:[A-Za-z]+}", a.Get)
-	router.Post("/", a.Post)
-	router.Post("/api/shorten", a.JSONShorten)
-	router.Get("/ping", a.Ping)
-	router.Post("/api/shorten/batch", a.Batch)
-	router.Get("/api/user/urls", a.GetAllUrls)
-	router.Delete("/api/user/urls", a.DeleteUrls)
+	router.Get("/{shortID:[A-Za-z]+}", api.Get)
+	router.Post("/", api.Post)
+	router.Post("/api/shorten", api.JSONShorten)
+	router.Get("/ping", api.Ping)
+	router.Post("/api/shorten/batch", api.Batch)
+	router.Get("/api/user/urls", api.GetAllUrls)
+	router.Delete("/api/user/urls", api.DeleteUrls)
 
 	return router
 }
