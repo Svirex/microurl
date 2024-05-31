@@ -16,11 +16,13 @@ import (
 func TestMain(m *testing.M) {
 	db.Init()
 	defer db.Close()
-
-	db.MigrateUp()
-	code := m.Run()
-	db.MigrateDown()
-	fmt.Println("Test end with code ", code)
+	var code int
+	if db.GetPool() != nil {
+		db.MigrateUp()
+		code = m.Run()
+		db.MigrateDown()
+		fmt.Println("Test end with code ", code)
+	}
 	os.Exit(code)
 }
 
