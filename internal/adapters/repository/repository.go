@@ -18,6 +18,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// NewRepository - новый репозиторий на основе переданных параметров.
 func NewRepository(ctx context.Context, cfg *config.Config, db *pgxpool.Pool, logger ports.Logger) (ports.ShortenerRepository, error) {
 	var repository ports.ShortenerRepository
 	if cfg.PostgresDSN != "" {

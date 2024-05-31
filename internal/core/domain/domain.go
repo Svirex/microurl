@@ -1,9 +1,16 @@
 // Пакет domain описывает основные сущности, используемые в проекте.
 package domain
 
+// ShortID - тип для короткого идентификатора.
 type ShortID string
+
+// ShortURL - тип для сокращенного урла.
 type ShortURL string
+
+// URL - тип для урла.
 type URL string
+
+// UID - тип для uid пользователя.
 type UID string
 
 // Record определяет тип для записи к БД.

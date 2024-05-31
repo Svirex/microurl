@@ -13,11 +13,13 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// PostgresRepository - репозиторий.
 type PostgresRepository struct {
 	db     *pgxpool.Pool
 	logger ports.Logger
 }
 
+// NewPostgresRepository - новый репозиторий.
 func NewPostgresRepository(db *pgxpool.Pool, logger ports.Logger) *PostgresRepository {
 	return &PostgresRepository{
 		db:     db,
@@ -27,6 +29,7 @@ func NewPostgresRepository(db *pgxpool.Pool, logger ports.Logger) *PostgresRepos
 
 var _ ports.ShortenerRepository = (*PostgresRepository)(nil)
 
+// Add - добавить запись.
 func (repo *PostgresRepository) Add(ctx context.Context, shortID domain.ShortID, data *domain.Record) (domain.ShortID, error) {
 	trx, err := repo.db.BeginTx(ctx, pgx.TxOptions{})
 
@@ -62,6 +65,7 @@ func (repo *PostgresRepository) Add(ctx context.Context, shortID domain.ShortID,
 	return shortID, nil
 }
 
+// Get - получить урл.
 func (repo *PostgresRepository) Get(ctx context.Context, shortID domain.ShortID) (domain.URL, error) {
 	var url domain.URL
 	err := repo.db.QueryRow(ctx, "SELECT url FROM records WHERE short_id=$1 AND is_deleted=false;", shortID).Scan(&url)
@@ -75,6 +79,7 @@ func (repo *PostgresRepository) Get(ctx context.Context, shortID domain.ShortID)
 	return url, nil
 }
 
+// Batch - добавить несоклько записей.
 func (repo *PostgresRepository) Batch(ctx context.Context, uid domain.UID, data []domain.BatchRecord) ([]domain.BatchRecord, error) {
 	query := `INSERT INTO records (url, short_id) VALUES ($1, $2) ON CONFLICT (url) DO UPDATE 
 			  SET short_id=records.short_id RETURNING short_id;`
@@ -105,6 +110,7 @@ func (repo *PostgresRepository) Batch(ctx context.Context, uid domain.UID, data 
 	return data, nil
 }
 
+// UserURLs - получить все урлы для пользователя.
 func (repo *PostgresRepository) UserURLs(ctx context.Context, uid domain.UID) ([]domain.URLData, error) {
 	rows, err := repo.db.Query(ctx, `SELECT url, short_id FROM records
 									 JOIN users ON records.id=users.record_id
@@ -123,6 +129,7 @@ func (repo *PostgresRepository) UserURLs(ctx context.Context, uid domain.UID) ([
 	return result, nil
 }
 
+// Shutdown - выключить сервис.
 func (repo *PostgresRepository) Shutdown() error {
 	return nil
 }

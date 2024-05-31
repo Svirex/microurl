@@ -1,3 +1,4 @@
+// Пакет испоьзуетсяд ля запуска интеграционных тестов.
 package db
 
 import (
@@ -20,6 +21,7 @@ var logger *zap.SugaredLogger
 
 var migration *migrate.Migrate
 
+// GetPool - получить пул соединений к БД.
 func GetPool() *pgxpool.Pool {
 	if dbpool == nil {
 		log.Fatalf("db not init")
@@ -27,6 +29,7 @@ func GetPool() *pgxpool.Pool {
 	return dbpool
 }
 
+// GetLogger - получить логгер.
 func GetLogger() *zap.SugaredLogger {
 	if logger == nil {
 		log.Fatalf("logger not init")
@@ -64,6 +67,7 @@ func initMigration(path string) {
 	}
 }
 
+// Init - создать сущности.
 func Init() {
 	cfg, err := config.Parse()
 	if err != nil {
@@ -73,14 +77,14 @@ func Init() {
 		initLogger()
 	}
 	if dbpool == nil {
-		Connect(cfg.PostgresDSN)
+		сonnect(cfg.PostgresDSN)
 	}
 	if migration == nil {
 		initMigration(cfg.MigrationsPath)
 	}
 }
 
-func Connect(dsn string) {
+func сonnect(dsn string) {
 	var err error
 	dbpool, err = pgxpool.New(context.Background(), dsn)
 	if err != nil {
@@ -93,10 +97,12 @@ func Connect(dsn string) {
 	log.Println("DB Connected")
 }
 
-func Close() {
+// Сlose - закрыть соединения.
+func Сlose() {
 	dbpool.Close()
 }
 
+// MigrateUp - накатить миграции.
 func MigrateUp() {
 	version, dirty, err := migration.Version()
 	if err != nil && !errors.Is(err, migrate.ErrNilVersion) {
@@ -114,6 +120,7 @@ func MigrateUp() {
 	}
 }
 
+// MigrateDown - откатить миграции.
 func MigrateDown() {
 	err := migration.Down()
 	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
@@ -121,6 +128,7 @@ func MigrateDown() {
 	}
 }
 
+// Truncate - очистить таблицы в БД.
 func Truncate() error {
 	_, err := dbpool.Exec(context.Background(), "TRUNCATE TABLE users, records RESTART IDENTITY;")
 	if err != nil {

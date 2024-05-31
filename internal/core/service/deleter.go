@@ -10,6 +10,7 @@ import (
 	"github.com/Svirex/microurl/internal/core/ports"
 )
 
+// DeleterService - структура сервиса удаления ссылок.
 type DeleterService struct {
 	wg          sync.WaitGroup
 	repo        ports.DeleterRepository
@@ -21,6 +22,7 @@ type DeleterService struct {
 	fanInChan chan *domain.DeleteData
 }
 
+// NewDeleter - новый сервис.
 func NewDeleter(repo ports.DeleterRepository, logger ports.Logger, batchSize int) (*DeleterService, error) {
 	service := &DeleterService{
 		repo:        repo,
@@ -35,6 +37,7 @@ func NewDeleter(repo ports.DeleterRepository, logger ports.Logger, batchSize int
 
 var _ ports.DeleterService = (*DeleterService)(nil)
 
+// Run - запуск сервиса.
 func (ds *DeleterService) Run() error {
 	// запустить горутину, которая пишет в базу
 	// запустить горутину, которая логирует ошибки
@@ -45,11 +48,13 @@ func (ds *DeleterService) Run() error {
 	return nil
 }
 
+// Process - добавить запись в обработку.
 func (ds *DeleterService) Process(_ context.Context, uid string, shortIDs []string) {
 	ds.wg.Add(1)
 	go ds.generator(uid, shortIDs)
 }
 
+// Shutdown - дожидаемся завершения обработки записей в очереди.
 func (ds *DeleterService) Shutdown() error {
 	ds.wg.Wait()
 	close(ds.fanInChan)

@@ -7,7 +7,10 @@ import (
 	"github.com/Svirex/microurl/internal/core/domain"
 )
 
+// ErrAlreadyExists - ошибка "уже существует"
 var ErrAlreadyExists = errors.New("already exists")
+
+// ErrNotFound - ошибка "не найдено"
 var ErrNotFound = errors.New("not found")
 
 // ShortenerService - интерфейс сервиса сокращения ссылок.

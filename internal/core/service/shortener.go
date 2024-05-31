@@ -9,6 +9,7 @@ import (
 	"github.com/Svirex/microurl/internal/core/ports"
 )
 
+// ShortenerService - сервис сокращения ссылок.
 type ShortenerService struct {
 	shortIDGenerator ports.StringGenerator
 	repository       ports.ShortenerRepository
@@ -16,6 +17,7 @@ type ShortenerService struct {
 	baseURL          string
 }
 
+// NewShortenerService - создание сервиса.
 func NewShortenerService(
 	shortIDGenerator ports.StringGenerator,
 	repository ports.ShortenerRepository,
@@ -32,6 +34,7 @@ func NewShortenerService(
 
 var _ ports.ShortenerService = (*ShortenerService)(nil)
 
+// Add - обработать добавление записи.
 func (s *ShortenerService) Add(ctx context.Context, record *domain.Record) (domain.ShortURL, error) {
 	shortID := domain.ShortID(s.shortIDGenerator.Generate(ctx, s.shortIDSize))
 	id, err := s.repository.Add(ctx, shortID, record)
@@ -44,10 +47,12 @@ func (s *ShortenerService) Add(ctx context.Context, record *domain.Record) (doma
 	return s.shortURL(id), nil
 }
 
+// Get - обработать получение записи.
 func (s *ShortenerService) Get(ctx context.Context, shortID domain.ShortID) (domain.URL, error) {
 	return s.repository.Get(ctx, shortID)
 }
 
+// Batch - обработать добавление нескольких записей.
 func (s *ShortenerService) Batch(ctx context.Context, uid domain.UID, data []domain.BatchRecord) ([]domain.BatchRecord, error) {
 	for i := range data {
 		data[i].ShortID = domain.ShortID(s.shortIDGenerator.Generate(ctx, s.shortIDSize))
@@ -62,6 +67,7 @@ func (s *ShortenerService) Batch(ctx context.Context, uid domain.UID, data []dom
 	return data, nil
 }
 
+// UserURLs - получить все урлы пользователя.
 func (s *ShortenerService) UserURLs(ctx context.Context, uid domain.UID) ([]domain.URLData, error) {
 	data, err := s.repository.UserURLs(ctx, uid)
 	if err != nil {
@@ -73,6 +79,7 @@ func (s *ShortenerService) UserURLs(ctx context.Context, uid domain.UID) ([]doma
 	return data, nil
 }
 
+// Shutdown - завершить работу сервиса.
 func (s *ShortenerService) Shutdown() error {
 	return nil
 }

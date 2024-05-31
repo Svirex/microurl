@@ -11,12 +11,14 @@ import (
 	"github.com/google/uuid"
 )
 
+// ShortenerRepository - репозиторий с записью в файл.
 type ShortenerRepository struct {
 	repo   *inmemory.ShortenerRepository
 	writer ports.BackupWriter
 	mutex  sync.Mutex
 }
 
+// NewShortenerRepository - новый репозиторий.
 func NewShortenerRepository(inmemoryRepo *inmemory.ShortenerRepository, writer ports.BackupWriter) *ShortenerRepository {
 	return &ShortenerRepository{
 		repo:   inmemoryRepo,
@@ -26,6 +28,7 @@ func NewShortenerRepository(inmemoryRepo *inmemory.ShortenerRepository, writer p
 
 var _ ports.ShortenerRepository = (*ShortenerRepository)(nil)
 
+// Add - добавить запись.
 func (repo *ShortenerRepository) Add(ctx context.Context, shortID domain.ShortID, data *domain.Record) (domain.ShortID, error) {
 	if id, exist := repo.repo.CheckExists(data.URL); exist {
 		return id, fmt.Errorf("file repository, add: %w", ports.ErrAlreadyExists)
@@ -50,10 +53,12 @@ func (repo *ShortenerRepository) writeToFile(record *domain.BackupRecord) error 
 	return repo.writer.Write(context.Background(), record)
 }
 
+// Get - получить урл.
 func (repo *ShortenerRepository) Get(ctx context.Context, shortID domain.ShortID) (domain.URL, error) {
 	return repo.repo.Get(ctx, shortID)
 }
 
+// Batch - добавить несоклько записей.
 func (repo *ShortenerRepository) Batch(ctx context.Context, uid domain.UID, data []domain.BatchRecord) ([]domain.BatchRecord, error) {
 	backupRecords := make([]domain.BackupRecord, 0, len(data))
 	for i := range data {
@@ -85,10 +90,12 @@ func (repo *ShortenerRepository) writeBatchToFile(data []domain.BackupRecord) er
 	return nil
 }
 
+// UserURLs - получить все урлы для пользователя.
 func (repo *ShortenerRepository) UserURLs(ctx context.Context, uid domain.UID) ([]domain.URLData, error) {
 	return repo.repo.UserURLs(ctx, uid)
 }
 
+// Shutdown - выключить сервис.
 func (repo *ShortenerRepository) Shutdown() error {
 	return nil
 }

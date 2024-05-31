@@ -9,11 +9,13 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// DeleterRepository - репозиторий.
 type DeleterRepository struct {
 	db     *pgxpool.Pool
 	logger ports.Logger
 }
 
+// NewDeleterRepository - новый репозиторий
 func NewDeleterRepository(db *pgxpool.Pool, logger ports.Logger) *DeleterRepository {
 	return &DeleterRepository{
 		db:     db,
@@ -23,6 +25,7 @@ func NewDeleterRepository(db *pgxpool.Pool, logger ports.Logger) *DeleterReposit
 
 var _ ports.DeleterRepository = (*DeleterRepository)(nil)
 
+// Delete - помечает урлы как удаленные
 func (r *DeleterRepository) Delete(ctx context.Context, batch []*domain.DeleteData) error {
 	uids := make([]string, 0)
 	shortIDs := make([]string, 0)

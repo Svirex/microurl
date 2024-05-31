@@ -9,6 +9,7 @@ import (
 	"github.com/Svirex/microurl/internal/core/ports"
 )
 
+// ShortenerRepository - репозиторий для хранения записей в памяти
 type ShortenerRepository struct {
 	data          map[domain.ShortID]domain.URL
 	urlsToShortID map[domain.URL]domain.ShortID
@@ -18,6 +19,7 @@ type ShortenerRepository struct {
 
 var _ ports.ShortenerRepository = (*ShortenerRepository)(nil)
 
+// NewShortenerRepository - новый репозиторий.
 func NewShortenerRepository() *ShortenerRepository {
 	return &ShortenerRepository{
 		data:          make(map[domain.ShortID]domain.URL),
@@ -26,12 +28,14 @@ func NewShortenerRepository() *ShortenerRepository {
 	}
 }
 
+// Add - добавить запись.
 func (m *ShortenerRepository) Add(_ context.Context, shortID domain.ShortID, data *domain.Record) (domain.ShortID, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 	return m.addNewOrGetExistShortID(shortID, data.URL, data.UID)
 }
 
+// Get - получить урл.
 func (m *ShortenerRepository) Get(_ context.Context, shortID domain.ShortID) (domain.URL, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -42,6 +46,7 @@ func (m *ShortenerRepository) Get(_ context.Context, shortID domain.ShortID) (do
 	return url, nil
 }
 
+// Batch - добавить несоклько записей.
 func (m *ShortenerRepository) Batch(_ context.Context, uid domain.UID, data []domain.BatchRecord) ([]domain.BatchRecord, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
@@ -53,6 +58,7 @@ func (m *ShortenerRepository) Batch(_ context.Context, uid domain.UID, data []do
 	return data, nil
 }
 
+// UserURLs - получить все урлы для пользователя.
 func (m *ShortenerRepository) UserURLs(ctx context.Context, uid domain.UID) ([]domain.URLData, error) {
 	if _, ok := m.uidToRecords[uid]; !ok {
 		return make([]domain.URLData, 0), nil
@@ -60,10 +66,12 @@ func (m *ShortenerRepository) UserURLs(ctx context.Context, uid domain.UID) ([]d
 	return m.uidToRecords[uid], nil
 }
 
+// Shutdown - выключить сервис.
 func (m *ShortenerRepository) Shutdown() error {
 	return nil
 }
 
+// CheckExists - проверить, что урл есть в репозитории
 func (m *ShortenerRepository) CheckExists(url domain.URL) (domain.ShortID, bool) {
 	shortID, exist := m.urlsToShortID[url]
 	return shortID, exist

@@ -10,6 +10,7 @@ import (
 	"github.com/caarlos0/env/v10"
 )
 
+// Config - конфиг приложения
 type Config struct {
 	Addr            string `env:"SERVER_ADDRESS"`
 	BaseURL         string `env:"BASE_URL"`
@@ -19,6 +20,7 @@ type Config struct {
 	SecretKey       string `env:"SECRET_KEY"`
 }
 
+// ParseEnv - парсим переменные окружения
 func ParseEnv() (*Config, error) {
 	cfg := &Config{}
 	if err := env.Parse(cfg); err != nil {
@@ -27,6 +29,7 @@ func ParseEnv() (*Config, error) {
 	return cfg, nil
 }
 
+// ParseFlags - парсим флаги командной строки
 func ParseFlags() (*Config, error) {
 	cfg := &Config{}
 	currentDir, err := os.Getwd()
@@ -43,6 +46,7 @@ func ParseFlags() (*Config, error) {
 	return cfg, nil
 }
 
+// Parse - парсим конфиг
 func Parse() (*Config, error) {
 	envCfg, err := ParseEnv()
 	if err != nil {

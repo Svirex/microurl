@@ -15,12 +15,14 @@ type loggingResponseWriter struct {
 	responseData *responseData
 }
 
+// Write - запись тела ответа
 func (w *loggingResponseWriter) Write(data []byte) (int, error) {
 	size, err := w.ResponseWriter.Write(data)
 	w.responseData.size += size
 	return size, err
 }
 
+// WriteHeader - запись заголовка ответа
 func (w *loggingResponseWriter) WriteHeader(statusCode int) {
 	w.ResponseWriter.WriteHeader(statusCode)
 	w.responseData.status = statusCode

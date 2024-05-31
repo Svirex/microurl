@@ -11,11 +11,13 @@ import (
 	"github.com/google/uuid"
 )
 
+// Claims - данные для JWT
 type Claims struct {
 	jwt.RegisteredClaims
 	UserID string
 }
 
+// JWTKey - тип для записи в контекст запроса uid пользователя
 type JWTKey string
 
 func (api *API) cookieAuth(next http.Handler) http.Handler {

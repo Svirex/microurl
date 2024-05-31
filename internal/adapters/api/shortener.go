@@ -14,6 +14,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 )
 
+// API - структура апи.
 type API struct {
 	shortener ports.ShortenerService
 	ping      ports.DBCheck
@@ -22,6 +23,7 @@ type API struct {
 	secretKey string
 }
 
+// NewAPI - создание нового апи.
 func NewAPI(
 	shortener ports.ShortenerService,
 	ping ports.DBCheck,
@@ -38,6 +40,7 @@ func NewAPI(
 	}
 }
 
+// NewServer - создание нового сервера.
 func NewServer(ctx context.Context, addr string, handler http.Handler) *http.Server {
 	return &http.Server{
 		Addr:        addr,
@@ -46,6 +49,7 @@ func NewServer(ctx context.Context, addr string, handler http.Handler) *http.Ser
 	}
 }
 
+// Routes - создание роутов.
 func (api *API) Routes() chi.Router {
 	router := chi.NewRouter()
 
@@ -66,6 +70,7 @@ func (api *API) Routes() chi.Router {
 	return router
 }
 
+// Post - обработка запроса на добавление записи.
 func (api *API) Post(w http.ResponseWriter, r *http.Request) {
 	url, err := io.ReadAll(r.Body)
 	if err != nil || len(url) == 0 {
@@ -94,6 +99,7 @@ func (api *API) Post(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(string(shortURL)))
 }
 
+// Get - обработка запроса на получение урла.
 func (api *API) Get(w http.ResponseWriter, r *http.Request) {
 	shortID := domain.ShortID(chi.URLParam(r, "shortID"))
 	url, err := api.shortener.Get(r.Context(), shortID)
@@ -118,6 +124,7 @@ type outJSON struct {
 	ShortURL domain.ShortURL `json:"result"`
 }
 
+// JSONShorten - добавление записи из json запроса.
 func (api *API) JSONShorten(w http.ResponseWriter, r *http.Request) {
 	contentType := r.Header.Get("Content-Type")
 	if contentType != "application/json" {
@@ -181,6 +188,7 @@ func (api *API) JSONShorten(w http.ResponseWriter, r *http.Request) {
 	w.Write(body)
 }
 
+// Ping - проверка работоспособности подключения к БД.
 func (api *API) Ping(w http.ResponseWriter, r *http.Request) {
 	err := api.ping.Ping(r.Context())
 	if err != nil {
@@ -190,6 +198,7 @@ func (api *API) Ping(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// Batch - добавление нескольких записей.
 func (api *API) Batch(w http.ResponseWriter, r *http.Request) {
 	contentType := r.Header.Get("Content-Type")
 	if contentType != "application/json" {
@@ -231,6 +240,7 @@ func (api *API) Batch(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// GetAllUrls - получение всех записей для пользователя.
 func (api *API) GetAllUrls(response http.ResponseWriter, request *http.Request) {
 	var uid string
 	var ok bool
@@ -260,6 +270,7 @@ func (api *API) GetAllUrls(response http.ResponseWriter, request *http.Request) 
 	response.Write(body)
 }
 
+// DeleteUrls - обработка запроса для удаления записей
 func (api *API) DeleteUrls(response http.ResponseWriter, request *http.Request) {
 	var uid string
 	var ok bool

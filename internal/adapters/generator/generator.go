@@ -9,12 +9,14 @@ import (
 
 const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
+// StringGenerator - структура
 type StringGenerator struct {
 	rand *rand.Rand
 }
 
 var _ ports.StringGenerator = (*StringGenerator)(nil)
 
+// Generate - создать рандомную последовательность символов определенной длины
 func (g *StringGenerator) Generate(ctx context.Context, size uint) string {
 	b := make([]byte, size)
 	for i := range b {
@@ -23,6 +25,7 @@ func (g *StringGenerator) Generate(ctx context.Context, size uint) string {
 	return string(b)
 }
 
+// NewStringGenerator - новый генератор
 func NewStringGenerator(seed int64) *StringGenerator {
 	return &StringGenerator{
 		rand: rand.New(rand.NewSource(seed)),
