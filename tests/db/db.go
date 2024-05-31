@@ -22,7 +22,7 @@ var migration *migrate.Migrate
 
 func GetPool() *pgxpool.Pool {
 	if dbpool == nil {
-		logger.Info("db not init")
+		log.Fatalf("db not init")
 	}
 	return dbpool
 }
@@ -65,7 +65,6 @@ func initMigration(path string) {
 }
 
 func Init() {
-	var err error
 	cfg, err := config.Parse()
 	if err != nil {
 		log.Fatal(err)
@@ -74,14 +73,14 @@ func Init() {
 		initLogger()
 	}
 	if dbpool == nil {
-		err = Connect(cfg.PostgresDSN)
+		Connect(cfg.PostgresDSN)
 	}
-	if migration == nil && err == nil {
+	if migration == nil {
 		initMigration(cfg.MigrationsPath)
 	}
 }
 
-func Connect(dsn string) error {
+func Connect(dsn string) {
 	var err error
 	dbpool, err = pgxpool.New(context.Background(), dsn)
 	if err != nil {
@@ -89,12 +88,9 @@ func Connect(dsn string) error {
 	}
 	err = dbpool.Ping(context.Background())
 	if err != nil {
-		logger.Errorf("db ping error: %v", err)
-		dbpool = nil
-		return err
+		log.Fatalf("db ping error: %v", err)
 	}
 	log.Println("DB Connected")
-	return nil
 }
 
 func Close() {

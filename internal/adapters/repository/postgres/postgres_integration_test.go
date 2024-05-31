@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package postgres
 
 import (
@@ -16,13 +19,11 @@ import (
 func TestMain(m *testing.M) {
 	db.Init()
 	defer db.Close()
-	var code int
-	if db.GetPool() != nil {
-		db.MigrateUp()
-		code = m.Run()
-		db.MigrateDown()
-		fmt.Println("Test end with code ", code)
-	}
+
+	db.MigrateUp()
+	code := m.Run()
+	db.MigrateDown()
+	fmt.Println("Test end with code ", code)
 	os.Exit(code)
 }
 
