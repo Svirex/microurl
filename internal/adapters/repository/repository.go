@@ -13,10 +13,9 @@ import (
 	"github.com/Svirex/microurl/internal/config"
 	"github.com/Svirex/microurl/internal/core/ports"
 	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/postgres"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jackc/pgx/v5/stdlib"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func NewRepository(ctx context.Context, cfg *config.Config, db *pgxpool.Pool, logger ports.Logger) (ports.ShortenerRepository, error) {
@@ -51,13 +50,10 @@ func NewRepository(ctx context.Context, cfg *config.Config, db *pgxpool.Pool, lo
 }
 
 func migrationUp(dbpool *pgxpool.Pool, logger ports.Logger, migrationsPath string) {
-	db := stdlib.OpenDBFromPool(dbpool)
-	driver, err := postgres.WithInstance(db, &postgres.Config{})
-	if err != nil {
-		logger.Fatalf("create instance db for migrate: %v", "err", err)
-	}
-	migration, err := migrate.NewWithDatabaseInstance(
-		"file://"+migrationsPath, "postgres", driver)
+	logger.Debug("dbpool.Config().ConnConfig.Config = ", dbpool.Config().ConnConfig.Config)
+	pgConfig := &dbpool.Config().ConnConfig.Config
+	migration, err := migrate.New(
+		"file://"+migrationsPath, fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable", pgConfig.User, pgConfig.Password, pgConfig.Host, pgConfig.Port, pgConfig.Database))
 	if err != nil {
 		logger.Fatalf("create migrate: %v", "err", err)
 	}

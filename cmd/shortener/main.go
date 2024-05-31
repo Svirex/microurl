@@ -60,7 +60,13 @@ func main() {
 			logger.Fatalln("DB connection error", "err", err)
 		}
 		logger.Info("DB connection success...")
-		defer db.Close()
+
+		closeDB := func() {
+			logger.Debug("start close db")
+			db.Close()
+			logger.Debug("end close db")
+		}
+		defer closeDB()
 	}
 
 	repository, err := repository.NewRepository(serverCtx, cfg, db, logger)
@@ -103,17 +109,22 @@ func main() {
 
 		go func() {
 			<-shutdownCtx.Done()
+			logger.Debug("shutdownCtx.Done()")
 			if shutdownCtx.Err() == context.DeadlineExceeded {
 				logger.Error("Gracelful shutdown timeout. Force shutdown")
 				os.Exit(1)
 			}
 		}()
 
+		logger.Debug("start shutdown server")
+
 		err := serverObj.Shutdown(shutdownCtx)
 		if err != nil {
 			logger.Error("Error while shutdown", "err", err)
 			os.Exit(1)
 		}
+
+		logger.Debug("start serverCancel")
 
 		serverCancel()
 

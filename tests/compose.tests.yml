@@ -19,7 +19,7 @@ services:
   db:
     image: docker.io/postgres:16.2-alpine3.19
     ports:
-      - "54345:5432"
+      - "5432:5432"
     expose:
       - "5432"
     environment:
