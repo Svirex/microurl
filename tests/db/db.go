@@ -22,7 +22,7 @@ var migration *migrate.Migrate
 
 func GetPool() *pgxpool.Pool {
 	if dbpool == nil {
-		log.Fatalf("db not init")
+		logger.Info("db not init")
 	}
 	return dbpool
 }
