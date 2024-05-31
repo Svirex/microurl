@@ -198,6 +198,7 @@ func (api *API) Batch(w http.ResponseWriter, r *http.Request) {
 	}
 	body, err := io.ReadAll(r.Body)
 	if err != nil || len(body) == 0 {
+		api.logger.Error("api, batch, read body: %w", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -205,6 +206,7 @@ func (api *API) Batch(w http.ResponseWriter, r *http.Request) {
 	var batch []domain.BatchRecord
 	err = json.Unmarshal(body, &batch)
 	if err != nil {
+		api.logger.Error("api, batch, unmarshal: %w", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -217,6 +219,7 @@ func (api *API) Batch(w http.ResponseWriter, r *http.Request) {
 	}
 	body, err = json.Marshal(batch)
 	if err != nil {
+		api.logger.Error("api, batch, marshal: %w", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
