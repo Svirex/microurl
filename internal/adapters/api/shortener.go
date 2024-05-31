@@ -102,7 +102,7 @@ func (api *API) Get(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusGone)
 			return
 		}
-		api.logger.Errorln("get url by short id", "err", err)
+		api.logger.Errorln("get url by short id: ", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}

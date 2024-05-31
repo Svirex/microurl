@@ -98,6 +98,10 @@ func (repo *PostgresRepository) Batch(ctx context.Context, uid domain.UID, data 
 			return nil, fmt.Errorf("postgres repository, batch, scan send batch result: %w", err)
 		}
 	}
+	err = trx.Commit(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("postgres repository, batch, commit trx: %w", err)
+	}
 	return data, nil
 }
 

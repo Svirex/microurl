@@ -50,7 +50,6 @@ func NewRepository(ctx context.Context, cfg *config.Config, db *pgxpool.Pool, lo
 }
 
 func migrationUp(dbpool *pgxpool.Pool, logger ports.Logger, migrationsPath string) {
-	logger.Debug("dbpool.Config().ConnConfig.Config = ", dbpool.Config().ConnConfig.Config)
 	pgConfig := &dbpool.Config().ConnConfig.Config
 	migration, err := migrate.New(
 		"file://"+migrationsPath, fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable", pgConfig.User, pgConfig.Password, pgConfig.Host, pgConfig.Port, pgConfig.Database))
