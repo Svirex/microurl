@@ -90,6 +90,7 @@ func Connect(dsn string) error {
 	err = dbpool.Ping(context.Background())
 	if err != nil {
 		logger.Errorf("db ping error: %v", err)
+		dbpool = nil
 		return err
 	}
 	log.Println("DB Connected")
