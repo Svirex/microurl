@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func setupBenchmarkTest(name string) (*ShortenerService, func()) {
+func setupBenchmarkTest() (*ShortenerService, func()) {
 	repo := inmemory.NewShortenerRepository()
 	gen := generator.NewStringGenerator(255)
 	service := NewShortenerService(gen, repo, 8, "http://localhost:8090")
@@ -24,7 +24,7 @@ func setupBenchmarkTest(name string) (*ShortenerService, func()) {
 }
 
 func BenchmarkAddGood(b *testing.B) {
-	service, tearDown := setupBenchmarkTest("BenchmarkAddGood")
+	service, tearDown := setupBenchmarkTest()
 	defer tearDown()
 	data := &domain.Record{
 		UID: domain.UID(uuid.New().String()),
