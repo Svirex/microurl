@@ -65,6 +65,7 @@ func initMigration(path string) {
 }
 
 func Init() {
+	var err error
 	cfg, err := config.Parse()
 	if err != nil {
 		log.Fatal(err)
@@ -73,14 +74,14 @@ func Init() {
 		initLogger()
 	}
 	if dbpool == nil {
-		Connect(cfg.PostgresDSN)
+		err = Connect(cfg.PostgresDSN)
 	}
-	if migration == nil {
+	if migration == nil && err == nil {
 		initMigration(cfg.MigrationsPath)
 	}
 }
 
-func Connect(dsn string) {
+func Connect(dsn string) error {
 	var err error
 	dbpool, err = pgxpool.New(context.Background(), dsn)
 	if err != nil {
@@ -88,9 +89,11 @@ func Connect(dsn string) {
 	}
 	err = dbpool.Ping(context.Background())
 	if err != nil {
-		log.Fatalf("db ping error: %v", err)
+		logger.Errorf("db ping error: %v", err)
+		return err
 	}
 	log.Println("DB Connected")
+	return nil
 }
 
 func Close() {
