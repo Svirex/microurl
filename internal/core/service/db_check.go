@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/Svirex/microurl/internal/config"
 	"github.com/Svirex/microurl/internal/core/ports"
@@ -14,7 +13,7 @@ type NoOpDBCheck struct{}
 var _ ports.DBCheck = (*NoOpDBCheck)(nil)
 
 func (n *NoOpDBCheck) Ping(context.Context) error {
-	return fmt.Errorf("no op db check, ping")
+	return nil
 }
 
 type DBCheck struct {
