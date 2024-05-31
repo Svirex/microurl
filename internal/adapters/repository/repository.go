@@ -71,4 +71,5 @@ func migrationUp(dbpool *pgxpool.Pool, logger ports.Logger, migrationsPath strin
 	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		logger.Fatalf("migration up error ", "err=", err)
 	}
+	migration.Close()
 }
