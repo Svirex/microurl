@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"log"
-	"os"
 
+	"github.com/Svirex/microurl/internal/config"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -51,46 +51,40 @@ func initLogger() {
 	logger = l.Sugar()
 }
 
-func initMigration() {
+func initMigration(path string) {
 	db := stdlib.OpenDBFromPool(dbpool)
 	driver, err := postgres.WithInstance(db, &postgres.Config{})
 	if err != nil {
 		logger.Fatalf("create instance db for migrate: %v", "err", err)
 	}
-	var migrationsPath string
-	var exists bool
-	if migrationsPath, exists = os.LookupEnv("MIGRATIONS_PATH"); !exists {
-		log.Fatalf("MIGRATIONS_PATH not exists")
-	}
 	migration, err = migrate.NewWithDatabaseInstance(
-		"file://"+migrationsPath, "postgres", driver)
+		"file://"+path, "postgres", driver)
 	if err != nil {
 		logger.Fatalf("create migrate: %v", "err", err)
 	}
 }
 
 func Init() {
+	cfg, err := config.Parse()
+	if err != nil {
+		log.Fatal(err)
+	}
 	if logger == nil {
 		initLogger()
 	}
 	if dbpool == nil {
-		Connect()
+		Connect(cfg.PostgresDSN)
 	}
 	if migration == nil {
-		initMigration()
+		initMigration(cfg.MigrationsPath)
 	}
 }
 
-func Connect() {
-	var dbURL string
-	var exists bool
-	if dbURL, exists = os.LookupEnv("DB_URL"); !exists {
-		log.Fatalf("connect string DB_URL not exists")
-	}
+func Connect(dsn string) {
 	var err error
-	dbpool, err = pgxpool.New(context.Background(), dbURL)
+	dbpool, err = pgxpool.New(context.Background(), dsn)
 	if err != nil {
-		log.Fatalf("create new pgxpool: %s, err: %v", dbURL, err)
+		log.Fatalf("create new pgxpool: %s, err: %v", dsn, err)
 	}
 	err = dbpool.Ping(context.Background())
 	if err != nil {
