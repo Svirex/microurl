@@ -91,13 +91,14 @@ func (repo *PostgresRepository) Batch(ctx context.Context, uid domain.UID, data 
 	defer trx.Rollback(ctx)
 
 	results := trx.SendBatch(ctx, batch)
-	defer results.Close()
+	// defer results.Close()
 	for i := range data {
 		err = results.QueryRow().Scan(&data[i].ShortID)
 		if err != nil {
 			return nil, fmt.Errorf("postgres repository, batch, scan send batch result: %w", err)
 		}
 	}
+	results.Close()
 	err = trx.Commit(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("postgres repository, batch, commit trx: %w", err)

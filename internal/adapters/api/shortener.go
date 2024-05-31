@@ -193,13 +193,13 @@ func (api *API) Ping(w http.ResponseWriter, r *http.Request) {
 func (api *API) Batch(w http.ResponseWriter, r *http.Request) {
 	contentType := r.Header.Get("Content-Type")
 	if contentType != "application/json" {
-		api.logger.Error("api, batch, Content-Type not json: %s", contentType)
+		api.logger.Errorf("api, batch, Content-Type not json: %s", contentType)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	body, err := io.ReadAll(r.Body)
 	if err != nil || len(body) == 0 {
-		api.logger.Error("api, batch, read body: %w", err)
+		api.logger.Errorf("api, batch, read body: %w", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -207,21 +207,21 @@ func (api *API) Batch(w http.ResponseWriter, r *http.Request) {
 	var batch []domain.BatchRecord
 	err = json.Unmarshal(body, &batch)
 	if err != nil {
-		api.logger.Error("api, batch, unmarshal: %w", err)
+		api.logger.Errorf("api, batch, unmarshal: %w", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	if len(batch) != 0 {
 		batch, err = api.shortener.Batch(r.Context(), domain.UID(""), batch)
 		if err != nil {
-			api.logger.Error("api, batch, service error: %w, result: %v", err, batch)
+			api.logger.Errorf("api, batch, service error: %w, result: %v", err, batch)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 	}
 	body, err = json.Marshal(batch)
 	if err != nil {
-		api.logger.Error("api, batch, marshal: %w", err)
+		api.logger.Errorf("api, batch, marshal: %w", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
