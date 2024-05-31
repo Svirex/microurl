@@ -270,11 +270,13 @@ func (api *API) DeleteUrls(response http.ResponseWriter, request *http.Request) 
 	}
 	contentType := request.Header.Get("Content-Type")
 	if contentType != "application/json" {
+		api.logger.Errorf("api, delete, Content-Type not json: %s", contentType)
 		response.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	body, err := io.ReadAll(request.Body)
 	if err != nil || len(body) == 0 {
+		api.logger.Errorf("api, delete, read bode: %w", err)
 		response.WriteHeader(http.StatusBadRequest)
 		return
 	}

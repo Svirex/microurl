@@ -2,7 +2,6 @@ package postgres
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 
@@ -67,7 +66,7 @@ func (repo *PostgresRepository) Get(ctx context.Context, shortID domain.ShortID)
 	var url domain.URL
 	err := repo.db.QueryRow(ctx, "SELECT url FROM records WHERE short_id=$1 AND is_deleted=false;", shortID).Scan(&url)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, pgx.ErrNoRows) {
 			repo.logger.Errorf("postgres repository, get, not found: %v", err)
 			return url, ports.ErrNotFound
 		}
