@@ -9,7 +9,7 @@ import (
 
 const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-// StringGenerator - структура
+// StringGenerator - генератор строк
 type StringGenerator struct {
 	rand *rand.Rand
 }

@@ -161,15 +161,7 @@ func (api *API) JSONShorten(w http.ResponseWriter, r *http.Request) {
 			result := outJSON{
 				ShortURL: shortURL,
 			}
-			body, err = json.Marshal(result)
-			if err != nil {
-				api.logger.Errorln("couldn't marshal:", err)
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-			w.Header().Add("Content-Type", "application/json")
-			w.WriteHeader(http.StatusConflict)
-			w.Write(body)
+			api.marshalAndSendJSON(result, http.StatusConflict, w)
 			return
 		}
 		api.logger.Error("service error: ", err)
@@ -179,15 +171,7 @@ func (api *API) JSONShorten(w http.ResponseWriter, r *http.Request) {
 	result := outJSON{
 		ShortURL: shortURL,
 	}
-	body, err = json.Marshal(result)
-	if err != nil {
-		api.logger.Errorln("couldn't marshal:", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	w.Header().Add("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	w.Write(body)
+	api.marshalAndSendJSON(result, http.StatusCreated, w)
 }
 
 // GetPingDB - проверка работоспособности подключения к БД.
@@ -230,16 +214,7 @@ func (api *API) PostAddBatch(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	body, err = json.Marshal(batch)
-	if err != nil {
-		api.logger.Errorf("api, batch, marshal: %w", err)
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	w.Header().Add("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	w.Write(body)
-
+	api.marshalAndSendJSON(batch, http.StatusCreated, w)
 }
 
 // GetAllUrls - получение всех записей для пользователя.
@@ -262,14 +237,7 @@ func (api *API) GetAllUrls(response http.ResponseWriter, request *http.Request) 
 		response.WriteHeader(http.StatusNoContent)
 		return
 	}
-	body, err := json.Marshal(result)
-	if err != nil {
-		api.logger.Error("couldn't marshal", "err", err)
-		response.WriteHeader(http.StatusNoContent)
-		return
-	}
-	response.Header().Add("Content-Type", "application/json")
-	response.Write(body)
+	api.marshalAndSendJSON(result, http.StatusOK, response)
 }
 
 // DeleteUrls - обработка запроса для удаления записей
@@ -302,4 +270,16 @@ func (api *API) DeleteUrls(response http.ResponseWriter, request *http.Request) 
 	}
 	api.deleter.Process(request.Context(), uid, shortIDs)
 	response.WriteHeader(http.StatusAccepted)
+}
+
+func (api *API) marshalAndSendJSON(data any, okStatus int, w http.ResponseWriter) {
+	body, err := json.Marshal(data)
+	if err != nil {
+		api.logger.Errorf("api, marshal and send json: %w", err)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(okStatus)
+	w.Write(body)
 }

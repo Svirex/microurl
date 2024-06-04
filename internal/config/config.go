@@ -12,12 +12,18 @@ import (
 
 // Config - конфиг приложения
 type Config struct {
-	Addr            string `env:"SERVER_ADDRESS"`
-	BaseURL         string `env:"BASE_URL"`
+	// Addr - адрес, по которому будет запущенно приложение
+	Addr string `env:"SERVER_ADDRESS"`
+	// BaseURL - адрес, который будет использоваться для сокращенной ссылки
+	BaseURL string `env:"BASE_URL"`
+	// FileStoragePath - путь к файлу для сохранения и загрузки записей
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
-	PostgresDSN     string `env:"DATABASE_DSN"`
-	MigrationsPath  string `env:"MIGRATIONS_PATH"`
-	SecretKey       string `env:"SECRET_KEY"`
+	// PostgresDSN - параметры для подключения к БД Postgres
+	PostgresDSN string `env:"DATABASE_DSN"`
+	// MigrationsPath - путь до директории с файлами миграций БД
+	MigrationsPath string `env:"MIGRATIONS_PATH"`
+	// SecretKey - секретный ключ для создания JWT токена
+	SecretKey string `env:"SECRET_KEY"`
 }
 
 // ParseEnv - парсим переменные окружения

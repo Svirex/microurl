@@ -41,7 +41,6 @@ func (repo *PostgresRepository) Add(ctx context.Context, shortID domain.ShortID,
 	err = trx.QueryRow(ctx, `INSERT INTO records (url, short_id) 
 							 VALUES ($1, $2) RETURNING id;`, data.URL, shortID).Scan(&id)
 	if err != nil {
-		trx.Rollback(ctx)
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == pgerrcode.UniqueViolation {
 			var shortID domain.ShortID

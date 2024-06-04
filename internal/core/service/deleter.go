@@ -69,7 +69,7 @@ func (ds *DeleterService) generator(uid string, shortIDs []string) {
 			ShortID: v,
 		}
 	}
-	ds.wg.Done()
+	defer ds.wg.Done()
 }
 
 func (ds *DeleterService) errorLogger() {
