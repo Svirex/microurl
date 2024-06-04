@@ -61,11 +61,13 @@ func (api *API) Routes() chi.Router {
 
 	router.Get("/{shortID:[A-Za-z]+}", api.Get)
 	router.Post("/", api.Post)
-	router.Post("/api/shorten", api.JSONShorten)
 	router.Get("/ping", api.Ping)
-	router.Post("/api/shorten/batch", api.Batch)
-	router.Get("/api/user/urls", api.GetAllUrls)
-	router.Delete("/api/user/urls", api.DeleteUrls)
+	router.Route("/api", func(router chi.Router) {
+		router.Post("/shorten", api.JSONShorten)
+		router.Post("/shorten/batch", api.Batch)
+		router.Get("/user/urls", api.GetAllUrls)
+		router.Delete("/user/urls", api.DeleteUrls)
+	})
 
 	return router
 }
