@@ -23,40 +23,42 @@ type JWTKey string
 func (api *API) cookieAuth(next http.Handler) http.Handler {
 	fn := func(response http.ResponseWriter, request *http.Request) {
 		jwtKey, err := request.Cookie("jwt")
-		var uid string
 		if errors.Is(err, http.ErrNoCookie) {
-			api.logger.Infoln("cookie auth middleware, not jwt in cookie")
-			if !strings.Contains(request.URL.Path, "api/user/urls") {
-				uid, err = generateUserIDAndJWTAndSetCookie(api.secretKey, response)
-				if err != nil {
-					api.logger.Errorln("cookie auth middleware, couldn't generate jwt, empty cookie: ", err)
-					response.WriteHeader(http.StatusBadRequest)
-					return
-				}
-			}
-		} else {
-			uid, err = getUserID(api.secretKey, jwtKey.Value)
-			if err != nil { // если токен не проходит проверку на подлинность
-				api.logger.Errorln("cookie auth middleware, jwt not valid", err)
-				uid, err = generateUserIDAndJWTAndSetCookie(api.secretKey, response)
-				if err != nil {
-					api.logger.Errorln("cookie auth middleware, couldn't generate jwt, cookie exist: ", err)
-					response.WriteHeader(http.StatusBadRequest)
-					return
-				}
-			}
-			if uid == "" {
-				api.logger.Infoln("cookie auth middleware, uid is empty")
+			if strings.Contains(request.URL.Path, "api/user/urls") {
+				api.logger.Error("not found auth cookei for api/user/urls")
 				response.WriteHeader(http.StatusUnauthorized)
 				return
 			}
-			http.SetCookie(response, jwtKey)
+			api.generateCookieAndHandleNext(next, response, request)
 		}
+		uid, err := getUserID(api.secretKey, jwtKey.Value)
+		if err != nil { // если токен не проходит проверку на подлинность
+			api.logger.Errorln("cookie auth middleware, jwt not valid", err)
+			api.generateCookieAndHandleNext(next, response, request)
+			return
+		}
+		if uid == "" {
+			api.logger.Infoln("cookie auth middleware, uid is empty")
+			response.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		http.SetCookie(response, jwtKey)
 		ctx := context.WithValue(request.Context(), JWTKey("uid"), uid)
 		next.ServeHTTP(response, request.WithContext(ctx))
 
 	}
 	return http.HandlerFunc(fn)
+}
+
+func (api *API) generateCookieAndHandleNext(next http.Handler, response http.ResponseWriter, request *http.Request) {
+	uid, err := generateUserIDAndJWTAndSetCookie(api.secretKey, response)
+	if err != nil {
+		api.logger.Errorln("cookie auth middleware, couldn't generate jwt, cookie exist: ", err)
+		response.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	ctx := context.WithValue(request.Context(), JWTKey("uid"), uid)
+	next.ServeHTTP(response, request.WithContext(ctx))
 }
 
 func generateUserID() (string, error) {
