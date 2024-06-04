@@ -30,6 +30,7 @@ func (api *API) cookieAuth(next http.Handler) http.Handler {
 				return
 			}
 			api.generateCookieAndHandleNext(next, response, request)
+			return
 		}
 		uid, err := getUserID(api.secretKey, jwtKey.Value)
 		if err != nil { // если токен не проходит проверку на подлинность

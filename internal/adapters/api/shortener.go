@@ -59,8 +59,8 @@ func (api *API) Routes() chi.Router {
 	router.Use(middleware.Compress(5, "text/html", "application/json"))
 	router.Use(api.cookieAuth)
 
-	router.Get("/{shortID:[A-Za-z]+}", api.GetUrl)
-	router.Post("/", api.PostAddUrl)
+	router.Get("/{shortID:[A-Za-z]+}", api.GetURL)
+	router.Post("/", api.PostAddURL)
 	router.Get("/ping", api.GetPingDB)
 	router.Route("/api", func(router chi.Router) {
 		router.Post("/shorten", api.JSONShorten)
@@ -72,8 +72,8 @@ func (api *API) Routes() chi.Router {
 	return router
 }
 
-// PostAddUrl - обработка запроса на добавление записи.
-func (api *API) PostAddUrl(w http.ResponseWriter, r *http.Request) {
+// PostAddURL - обработка запроса на добавление записи.
+func (api *API) PostAddURL(w http.ResponseWriter, r *http.Request) {
 	url, err := io.ReadAll(r.Body)
 	if err != nil || len(url) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
@@ -101,8 +101,8 @@ func (api *API) PostAddUrl(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(string(shortURL)))
 }
 
-// GetUrl - обработка запроса на получение урла.
-func (api *API) GetUrl(w http.ResponseWriter, r *http.Request) {
+// GetURL - обработка запроса на получение урла.
+func (api *API) GetURL(w http.ResponseWriter, r *http.Request) {
 	shortID := domain.ShortID(chi.URLParam(r, "shortID"))
 	url, err := api.shortener.Get(r.Context(), shortID)
 	if err != nil {
