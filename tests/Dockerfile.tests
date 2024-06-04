@@ -1,0 +1,7 @@
+FROM docker.io/golang:alpine3.19 AS src
+
+WORKDIR /app
+
+# CMD go clean -testcache && CGO_ENABLED=0 go test -tags=integration -p 1 -v  ./...
+# CMD go clean -testcache && CGO_ENABLED=0 go test -v -tags=integration -p 1 ./... -bench=. -benchmem
+CMD go clean -testcache && CGO_ENABLED=0 go test -tags=integration -p 1 -v  -coverprofile cover.out ./...

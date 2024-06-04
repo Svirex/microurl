@@ -1,0 +1,35 @@
+services:
+
+  webapp:
+    build:
+      context: .
+      dockerfile: Dockerfile.tests
+    depends_on:
+      - db
+    networks:
+      - integration-tests
+    volumes:
+      - type: bind
+        source: ../
+        target: /app
+    environment:
+      DB_URL: user=root password=root host=db port=5432 dbname=testdb sslmode=disable
+      MIGRATIONS_PATH: /app/migrations
+    restart: always
+  db:
+    image: docker.io/postgres:16.2-alpine3.19
+    ports:
+      - "5432:5432"
+    expose:
+      - "5432"
+    environment:
+      POSTGRES_USER: "root"
+      POSTGRES_PASSWORD: "root"
+      POSTGRES_DB: "testdb"
+    restart: always
+    networks:
+      - integration-tests
+
+networks:
+  integration-tests:
+    driver: bridge

@@ -1,4 +1,4 @@
-package main
+package main_test
 
 import (
 	"context"
@@ -25,7 +25,7 @@ import (
 
 const shortURLLength uint = 8
 
-func main() {
+func Example() {
 	cfg, err := config.Parse()
 	if err != nil {
 		log.Fatal(err)
