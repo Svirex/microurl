@@ -59,12 +59,12 @@ func (api *API) Routes() chi.Router {
 	router.Use(middleware.Compress(5, "text/html", "application/json"))
 	router.Use(api.cookieAuth)
 
-	router.Get("/{shortID:[A-Za-z]+}", api.Get)
-	router.Post("/", api.Post)
-	router.Get("/ping", api.Ping)
+	router.Get("/{shortID:[A-Za-z]+}", api.GetUrl)
+	router.Post("/", api.PostAddUrl)
+	router.Get("/ping", api.GetPingDB)
 	router.Route("/api", func(router chi.Router) {
 		router.Post("/shorten", api.JSONShorten)
-		router.Post("/shorten/batch", api.Batch)
+		router.Post("/shorten/batch", api.PostAddBatch)
 		router.Get("/user/urls", api.GetAllUrls)
 		router.Delete("/user/urls", api.DeleteUrls)
 	})
@@ -72,8 +72,8 @@ func (api *API) Routes() chi.Router {
 	return router
 }
 
-// Post - обработка запроса на добавление записи.
-func (api *API) Post(w http.ResponseWriter, r *http.Request) {
+// PostAddUrl - обработка запроса на добавление записи.
+func (api *API) PostAddUrl(w http.ResponseWriter, r *http.Request) {
 	url, err := io.ReadAll(r.Body)
 	if err != nil || len(url) == 0 {
 		w.WriteHeader(http.StatusBadRequest)
@@ -101,8 +101,8 @@ func (api *API) Post(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(string(shortURL)))
 }
 
-// Get - обработка запроса на получение урла.
-func (api *API) Get(w http.ResponseWriter, r *http.Request) {
+// GetUrl - обработка запроса на получение урла.
+func (api *API) GetUrl(w http.ResponseWriter, r *http.Request) {
 	shortID := domain.ShortID(chi.URLParam(r, "shortID"))
 	url, err := api.shortener.Get(r.Context(), shortID)
 	if err != nil {
@@ -190,8 +190,8 @@ func (api *API) JSONShorten(w http.ResponseWriter, r *http.Request) {
 	w.Write(body)
 }
 
-// Ping - проверка работоспособности подключения к БД.
-func (api *API) Ping(w http.ResponseWriter, r *http.Request) {
+// GetPingDB - проверка работоспособности подключения к БД.
+func (api *API) GetPingDB(w http.ResponseWriter, r *http.Request) {
 	err := api.ping.Ping(r.Context())
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -200,8 +200,8 @@ func (api *API) Ping(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// Batch - добавление нескольких записей.
-func (api *API) Batch(w http.ResponseWriter, r *http.Request) {
+// PostAddBatch - добавление нескольких записей.
+func (api *API) PostAddBatch(w http.ResponseWriter, r *http.Request) {
 	contentType := r.Header.Get("Content-Type")
 	if contentType != "application/json" {
 		api.logger.Errorf("api, batch, Content-Type not json: %s", contentType)
