@@ -1,9 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"strings"
 
+	gocritic "github.com/go-critic/go-critic/checkers/analyzer"
+	"go.uber.org/nilaway"
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/multichecker"
 	"golang.org/x/tools/go/analysis/passes/appends"
@@ -108,14 +109,13 @@ func main() {
 		unusedwrite.Analyzer,
 		usesgenerics.Analyzer,
 	}
-	fmt.Println("START APPEND staticcheck.Analyzers")
 	for _, v := range staticcheck.Analyzers {
 		if isUseCheck(v.Analyzer) {
 			checkers = append(checkers, v.Analyzer)
 		}
 	}
-	fmt.Println("END APPEND staticcheck.Analyzers")
-	// checkers = append(checkers, gocritic.Analyzer)
+	checkers = append(checkers, nilaway.Analyzer)
+	checkers = append(checkers, gocritic.Analyzer)
 
 	multichecker.Main(
 		checkers...,
