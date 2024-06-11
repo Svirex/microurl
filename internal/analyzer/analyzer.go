@@ -1,7 +1,6 @@
 package analyzer
 
 import (
-	"fmt"
 	"go/ast"
 
 	"golang.org/x/tools/go/analysis"
@@ -15,38 +14,50 @@ var Analyzer = &analysis.Analyzer{
 
 func run(pass *analysis.Pass) (interface{}, error) {
 	for _, file := range pass.Files {
-		if file.Name.Name == "main" {
-			ast.Inspect(file, func(node ast.Node) bool {
-				switch x := node.(type) {
-				case *ast.FuncDecl:
-					if x.Name.Name == "main" {
-						printMainCallExpr(pass, x.Body.List)
-					}
-				}
-				return true
-			})
+		if file.Name.Name != "main" {
+			continue
 		}
+		ast.Inspect(file, func(node ast.Node) bool {
+			funcDecl, ok := node.(*ast.FuncDecl)
+			if !ok || funcDecl.Name.Name != "main" {
+				return true
+			}
+			for _, stmt := range funcDecl.Body.List {
+				ast.Inspect(stmt, func(node ast.Node) bool {
+					if isOsExitCall(node) {
+						pass.Reportf(node.Pos(), "found os.Exit call")
+					}
+					return true
+				})
+			}
+			return false
+		})
 
 	}
 	return nil, nil
 }
 
-func printMainCallExpr(pass *analysis.Pass, stmts []ast.Stmt) {
-	for _, stmt := range stmts {
-		switch x := stmt.(type) {
-		case *ast.ExprStmt:
-			if call, ok := x.X.(*ast.CallExpr); ok {
-				fmt.Println(call.Fun)
-				// fmt.Println(pass.TypesInfo.Types[call.Fun].Type.String())
+func isOsExitCall(stmt ast.Node) bool {
+	exprStmt, ok := stmt.(*ast.ExprStmt)
+	if !ok {
+		return false
+	}
+	callStmt, ok := exprStmt.X.(*ast.CallExpr)
+	if !ok {
+		return false
+	}
+	selectorExpr, ok := callStmt.Fun.(*ast.SelectorExpr)
+	if !ok {
+		return false
+	}
+	name := selectorExpr.Sel.Name
+	if name != "Exit" {
+		return false
+	}
 
-				switch t := call.Fun.(type) {
-				case *ast.SelectorExpr:
-					// fmt.Println(t.Sel.Name)
-					switch d := t.X.(type) {
-					case *ast.Ident:
-						fmt.Println(d, d.Name, d.Pos())
-					}
-				}
-			}
-		case *ast.DeclStmt: 
-			fmt.
+	ident, ok := selectorExpr.X.(*ast.Ident)
+	if !ok || ident.Name != "os" {
+		return false
+	}
+	return true
+}

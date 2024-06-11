@@ -1,8 +1,6 @@
 module github.com/Svirex/microurl
 
-go 1.21
-
-toolchain go1.22.2
+go 1.22
 
 require (
 	github.com/caarlos0/env/v10 v10.0.0
