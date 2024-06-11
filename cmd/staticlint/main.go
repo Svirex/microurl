@@ -3,6 +3,7 @@ package main
 import (
 	"strings"
 
+	"github.com/Svirex/microurl/internal/analyzer"
 	gocritic "github.com/go-critic/go-critic/checkers/analyzer"
 	"go.uber.org/nilaway"
 	"golang.org/x/tools/go/analysis"
@@ -115,10 +116,11 @@ func main() {
 		}
 	}
 	checkers = append(checkers, nilaway.Analyzer)
-	checkers = append(checkers, gocritic.Analyzer)
+	_ = append(checkers, gocritic.Analyzer)
 
 	multichecker.Main(
-		checkers...,
+		analyzer.Analyzer,
+	// checkers...,
 	)
 }
 
