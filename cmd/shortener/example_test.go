@@ -2,6 +2,7 @@ package main_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -30,7 +31,6 @@ func Example() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	config := zap.Config{
 		Level:            zap.NewAtomicLevelAt(zapcore.DebugLevel),
 		Development:      true,
@@ -42,7 +42,7 @@ func Example() {
 
 	l, err := config.Build()
 	if err != nil {
-		log.Fatalf("couldn't init zap logger")
+		log.Panicln("couldn't init zap logger")
 	}
 	logger := ports.Logger(l.Sugar())
 	defer logger.Sync()
@@ -57,7 +57,7 @@ func Example() {
 		logger.Info("Try create DB connection...")
 		db, err = pgxpool.New(serverCtx, cfg.PostgresDSN)
 		if err != nil {
-			logger.Fatalln("DB connection error", "err", err)
+			logger.Panicln("DB connection error", "err", err)
 		}
 		logger.Info("DB connection success...")
 
@@ -71,7 +71,7 @@ func Example() {
 
 	repository, err := repository.NewRepository(serverCtx, cfg, db, logger)
 	if err != nil {
-		logger.Fatalf("create repository err: %w\n", err)
+		logger.Panicf("create repository err: %w\n", err)
 	}
 	defer repository.Shutdown()
 	logger.Infoln("Created repository...", "type=", fmt.Sprintf("%T", repository))
@@ -87,7 +87,7 @@ func Example() {
 
 	deleter, err := service.NewDeleter(deleterRepo, logger, 10)
 	if err != nil {
-		log.Fatalf("create deleter service: %#v", err)
+		logger.Panicf("create deleter service: %#v", err)
 	}
 	deleter.Run()
 	defer deleter.Shutdown()
@@ -107,21 +107,11 @@ func Example() {
 		shutdownCtx, shutdownCancel := context.WithTimeout(serverCtx, 30*time.Second)
 		defer shutdownCancel()
 
-		go func() {
-			<-shutdownCtx.Done()
-			logger.Debug("shutdownCtx.Done()")
-			if shutdownCtx.Err() == context.DeadlineExceeded {
-				logger.Error("Gracelful shutdown timeout. Force shutdown")
-				os.Exit(1)
-			}
-		}()
-
 		logger.Debug("start shutdown server")
 
 		err := serverObj.Shutdown(shutdownCtx)
 		if err != nil {
 			logger.Error("Error while shutdown", "err", err)
-			os.Exit(1)
 		}
 
 		logger.Debug("start serverCancel")
@@ -132,8 +122,8 @@ func Example() {
 	}()
 	logger.Info("Starting listen and serve...", "addr=", serverObj.Addr)
 	err = serverObj.ListenAndServe()
-	if err != nil && err != http.ErrServerClosed {
-		log.Fatal(err)
+	if err != nil && !errors.Is(err, http.ErrServerClosed) {
+		logger.Errorf("ListenAndServe: %v", err)
 	}
 
 	<-serverCtx.Done()

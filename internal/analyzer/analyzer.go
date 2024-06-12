@@ -1,3 +1,4 @@
+// Пакет analyzer определяет Analyzer, который проверяет, что в функции `main` пакета `main` нет вызова функции `os.Exit`.
 package analyzer
 
 import (

@@ -12,14 +12,14 @@ import (
 
 // DeleterService - структура сервиса удаления ссылок.
 type DeleterService struct {
-	wg          sync.WaitGroup
-	repo        ports.DeleterRepository
-	logger      ports.Logger
-	batchSize   int
-	mayShutdown chan struct{}
+	errorChan   chan error              // 16
+	repo        ports.DeleterRepository // 16
+	wg          sync.WaitGroup          // 8 + 4
+	batchSize   int                     // 8
+	logger      ports.Logger            // 8
+	mayShutdown chan struct{}           // 8
+	fanInChan   chan *domain.DeleteData // 8
 
-	errorChan chan error
-	fanInChan chan *domain.DeleteData
 }
 
 // NewDeleter - новый сервис.

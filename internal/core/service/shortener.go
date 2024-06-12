@@ -11,10 +11,10 @@ import (
 
 // ShortenerService - сервис сокращения ссылок.
 type ShortenerService struct {
+	baseURL          string
 	shortIDGenerator ports.StringGenerator
 	repository       ports.ShortenerRepository
 	shortIDSize      uint
-	baseURL          string
 }
 
 // NewShortenerService - создание сервиса.

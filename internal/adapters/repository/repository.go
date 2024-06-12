@@ -20,11 +20,12 @@ import (
 
 // NewRepository - новый репозиторий на основе переданных параметров.
 func NewRepository(ctx context.Context, cfg *config.Config, db *pgxpool.Pool, logger ports.Logger) (ports.ShortenerRepository, error) {
-	var repository ports.ShortenerRepository
 	if cfg.PostgresDSN != "" {
-		repository = repo.NewPostgresRepository(db, logger)
+		repository := repo.NewPostgresRepository(db, logger)
 		migrationUp(db, logger, cfg.MigrationsPath)
-	} else if cfg.FileStoragePath != "" {
+		return repository, nil
+	}
+	if cfg.FileStoragePath != "" {
 		f, err := os.OpenFile(cfg.FileStoragePath, os.O_RDONLY|os.O_CREATE, 0666)
 		if err != nil {
 			return nil, fmt.Errorf("new repository, open file: %w", err)
@@ -42,12 +43,9 @@ func NewRepository(ctx context.Context, cfg *config.Config, db *pgxpool.Pool, lo
 		}
 
 		w := filebackup.NewFileBackupWriter(f)
-		repository = file.NewShortenerRepository(m, w)
-
-	} else {
-		repository = inmemory.NewShortenerRepository()
+		return file.NewShortenerRepository(m, w), nil
 	}
-	return repository, nil
+	return inmemory.NewShortenerRepository(), nil
 }
 
 func migrationUp(dbpool *pgxpool.Pool, logger ports.Logger, migrationsPath string) {

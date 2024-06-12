@@ -1,9 +1,25 @@
+// Программа проверки кода статическим анализатором.
+//
+// Подключены следующие проверки:
+// * все проверки пакета golang.org/x/tools/go/analysis/passes
+// * все проверки SA и ST1005 пакета honnef.co/go/tools/staticcheck
+// * все проверки пакета github.com/go-critic/go-critic
+// * проверка go.uber.org/nilaway
+// * проверка github.com/Svirex/microurl/internal/analyzer
+//
+// 1. Билд программы
+//
+//	go build -o checker cmd/staticlint/main.go
+//
+// 2. Запуск проверки по всем файлам модуля
+//
+//	./checker ./...
 package main
 
 import (
 	"strings"
 
-	"github.com/Svirex/microurl/internal/analyzer"
+	osexit "github.com/Svirex/microurl/internal/analyzer"
 	gocritic "github.com/go-critic/go-critic/checkers/analyzer"
 	"go.uber.org/nilaway"
 	"golang.org/x/tools/go/analysis"
@@ -116,11 +132,11 @@ func main() {
 		}
 	}
 	checkers = append(checkers, nilaway.Analyzer)
-	_ = append(checkers, gocritic.Analyzer)
+	checkers = append(checkers, gocritic.Analyzer)
+	checkers = append(checkers, osexit.Analyzer)
 
 	multichecker.Main(
-		analyzer.Analyzer,
-	// checkers...,
+		checkers...,
 	)
 }
 
