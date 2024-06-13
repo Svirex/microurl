@@ -7,6 +7,7 @@ import (
 	"golang.org/x/tools/go/analysis"
 )
 
+// Анализатор проверяет, что в функции main пакета main нет вызова os.Exit
 var Analyzer = &analysis.Analyzer{
 	Name: "osexit",
 	Doc:  "check unexpected os.Exit in main.main",
