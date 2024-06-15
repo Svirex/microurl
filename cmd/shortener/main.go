@@ -27,27 +27,15 @@ import (
 const shortURLLength uint = 8
 
 var (
-	buildVersion string
-	buildDate    string
-	buildCommit  string
+	buildVersion string = "N/A"
+	buildDate    string = "N/A"
+	buildCommit  string = "N/A"
 )
 
 func showMetadata() {
-	if buildVersion != "" {
-		fmt.Println("Build version:", buildVersion)
-	} else {
-		fmt.Println("Build version: N/A")
-	}
-	if buildDate != "" {
-		fmt.Println("Build date:", buildDate)
-	} else {
-		fmt.Println("Build date: N/A")
-	}
-	if buildCommit != "" {
-		fmt.Println("Build commit:", buildCommit)
-	} else {
-		fmt.Println("Build commit: N/A")
-	}
+	fmt.Println("Build version:", buildVersion)
+	fmt.Println("Build date:", buildDate)
+	fmt.Println("Build commit:", buildCommit)
 }
 
 func main() {
