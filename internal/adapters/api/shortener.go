@@ -1,11 +1,9 @@
 package api
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"io"
-	"net"
 	"net/http"
 
 	"github.com/Svirex/microurl/internal/core/domain"
@@ -37,14 +35,6 @@ func NewAPI(
 		logger:    logger,
 		deleter:   deleter,
 		secretKey: secretKey,
-	}
-}
-
-// NewServer - создание нового сервера.
-func NewServer(ctx context.Context, handler http.Handler) *http.Server {
-	return &http.Server{
-		Handler:     handler,
-		BaseContext: func(net.Listener) context.Context { return ctx },
 	}
 }
 
