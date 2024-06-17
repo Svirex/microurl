@@ -26,6 +26,7 @@
 // - f (FILE_STORAGE_PATH) - путь до файла, где будут хранится записи в случае запуска сервиса с хранением в файле
 // - d (DATABASE_DSN) - адрес подключения к БД Postgres, может имееть вид `postgres://username:password@localhost:5432/database_name` или `host=localhost port=5432 dbname=mydb user=user password=pass`
 // - k (SECRET_KEY) - секретный ключ для создания JWT токена
+// - s (ENABLE_HTTPS) - включение https
 //
 // Запуск сервиса может быть выполнен с тремя хранилищами: в памяти, в файле или в БД.
 //
@@ -42,4 +43,8 @@
 // ### Запуск сервиса с хранилищем в памяти
 //
 //	./app -f ''
+//
+// ### Запуск сервиса с HTTPS
+//
+//	./app -s
 package main
