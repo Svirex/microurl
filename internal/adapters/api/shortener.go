@@ -41,9 +41,8 @@ func NewAPI(
 }
 
 // NewServer - создание нового сервера.
-func NewServer(ctx context.Context, addr string, handler http.Handler) *http.Server {
+func NewServer(ctx context.Context, handler http.Handler) *http.Server {
 	return &http.Server{
-		Addr:        addr,
 		Handler:     handler,
 		BaseContext: func(net.Listener) context.Context { return ctx },
 	}

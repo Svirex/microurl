@@ -24,6 +24,8 @@ type Config struct {
 	MigrationsPath string `env:"MIGRATIONS_PATH"`
 	// SecretKey - секретный ключ для создания JWT токена
 	SecretKey string `env:"SECRET_KEY"`
+	// ENABLE_HTTPS - включить https
+	EnableHTTPS bool `env:"ENABLE_HTTPS"`
 }
 
 // ParseEnv - парсим переменные окружения
@@ -48,6 +50,7 @@ func ParseFlags() (*Config, error) {
 	flag.StringVar(&cfg.PostgresDSN, "d", "", "postgres DSN")
 	flag.StringVar(&cfg.MigrationsPath, "m", path.Join(strings.Replace(currentDir, "cmd/shortener", "", 1), "migrations"), "path to db migrations")
 	flag.StringVar(&cfg.SecretKey, "k", "fake_secret_key", "secret key for auth")
+	flag.BoolVar(&cfg.EnableHTTPS, "s", false, "enable https")
 	flag.Parse()
 	return cfg, nil
 }
@@ -97,6 +100,7 @@ func mergeConf(envCfg *Config, flagConfig *Config) *Config {
 		PostgresDSN:     envCfg.PostgresDSN,
 		MigrationsPath:  envCfg.MigrationsPath,
 		SecretKey:       envCfg.SecretKey,
+		EnableHTTPS:     envCfg.EnableHTTPS,
 	}
 	if cfg.Addr == "" {
 		cfg.Addr = flagConfig.Addr
@@ -115,6 +119,9 @@ func mergeConf(envCfg *Config, flagConfig *Config) *Config {
 	}
 	if cfg.SecretKey == "" {
 		cfg.SecretKey = flagConfig.SecretKey
+	}
+	if !cfg.EnableHTTPS {
+		cfg.EnableHTTPS = flagConfig.EnableHTTPS
 	}
 	return cfg
 }
