@@ -24,6 +24,7 @@ func NewServer(ctx context.Context, handler http.Handler) *http.Server {
 	}
 }
 
+// CreateListener - создание net.Listener, HTTP или HTTPS
 func CreateListener(enableHTTPS bool, addr string) (net.Listener, error) {
 	if !enableHTTPS {
 		return net.Listen("tcp", addr)
