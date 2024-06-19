@@ -18,6 +18,7 @@ import (
 	"github.com/Svirex/microurl/internal/config"
 	"github.com/Svirex/microurl/internal/core/ports"
 	"github.com/Svirex/microurl/internal/core/service"
+	"github.com/Svirex/microurl/internal/server"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
@@ -95,7 +96,7 @@ func Example() {
 	serviceAPI := api.NewAPI(shortenerService, dbCheckService, logger, deleter, cfg.SecretKey)
 	handler := serviceAPI.Routes()
 
-	serverObj := api.NewServer(serverCtx, cfg.Addr, handler)
+	serverObj := server.NewServer(serverCtx, handler)
 
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
@@ -120,10 +121,14 @@ func Example() {
 
 		logger.Info("Server shutdowned")
 	}()
-	logger.Info("Starting listen and serve...", "addr=", serverObj.Addr)
-	err = serverObj.ListenAndServe()
+	listener, err := server.CreateListener(cfg.EnableHTTPS, cfg.Addr)
+	if err != nil {
+		logger.Panicf("create listener: %#v", err)
+	}
+	logger.Info("Starting server on addr ", listener.Addr())
+	err = serverObj.Serve(listener)
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		logger.Errorf("ListenAndServe: %v", err)
+		logger.Errorf("Serve: %v", err)
 	}
 
 	<-serverCtx.Done()
