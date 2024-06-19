@@ -78,8 +78,8 @@ func Parse() (*Config, error) {
 		}
 		cfg = mergeCommonsFields(cfg, fileCfg)
 	}
-	prepareConfig(cfg)
 	setDefaults(cfg)
+	prepareConfig(cfg)
 	return cfg, nil
 }
 
